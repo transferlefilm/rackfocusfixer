@@ -1,6 +1,6 @@
 RackFocusFixer
 ==============
 
-(c) 2013 Basilio Noris & Stéphane Magnenat
+(c) 2013 Stéphane Magnenat & Basilio Noris
 released under BSD new license
 
