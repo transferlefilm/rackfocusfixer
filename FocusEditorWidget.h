@@ -28,6 +28,8 @@ namespace RackFocusFixer
         void prevFrame();
         void nextFrameBlock();
         void prevFrameBlock();
+        void nextRefocusKey();
+        void prevRefocusKey();
         
 		void paintEvent(QPaintEvent * event);
         void timerEvent(QTimerEvent *event);
@@ -44,6 +46,18 @@ namespace RackFocusFixer
 		Frames frames;
 		unsigned frameIndex;
 		bool bFramesHaveAlpha;
+		
+		QPoint refocusLineStart;
+		QPoint refocusLineEnd;
+		unsigned refocusKeyCount;
+		unsigned refocusKeySelected;
+		enum RefocusSetState
+		{
+			RSS_NONE,
+			RSS_START,
+			RSS_COMPLETE
+		} refocusSetState;
+		
         bool bPaused;
 	};
 } // RackFocusFixer

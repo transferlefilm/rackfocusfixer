@@ -9,18 +9,24 @@
 #include <QProgressDialog>
 #include <QEvent>
 #include <QCoreApplication>
+#include <QInputDialog>
 
 namespace RackFocusFixer
 {
 	FocusEditorWidget::FocusEditorWidget():
-        frameIndex(0), bFramesHaveAlpha(false), bPaused(false)
+        frameIndex(0),
+        bFramesHaveAlpha(false),
+        refocusKeyCount(10),
+        refocusKeySelected(0),
+        refocusSetState(RSS_NONE),
+        bPaused(false)
 	{
 		setAttribute(Qt::WA_OpaquePaintEvent);
 	}
 
     void FocusEditorWidget::loadFramesFolder()
     {
-        QString filename = QFileDialog::getOpenFileName(0, "Open first frame file", "", "Images (*.png *.jpg)");
+        QString filename = QFileDialog::getOpenFileName(0, tr("Open first frame file"), "", tr("Images (*.png *.jpg)"));
         QString ext = filename.right(3);
         QString prefix = filename.left(filename.lastIndexOf("."));
         int digits = 0;
@@ -59,7 +65,7 @@ namespace RackFocusFixer
             ++filesCount;
         }
 
-        QProgressDialog progress("Loading Frames...", "Stop Loading", 0, filesCount, this);
+        QProgressDialog progress(tr("Loading Frames..."), tr("Stop Loading"), 0, filesCount, this);
         progress.setWindowModality(Qt::WindowModal);
         progress.show();
 
@@ -98,7 +104,7 @@ namespace RackFocusFixer
 				lastPercentageLoad = percentageLoad;
 			}
 		}
-        qDebug() << frames.size() << "frames loaded";
+		setWindowTitle(QString(tr("Rack Focus Fixer - %1 frames loaded").arg(frames.size())));
 	}
 	
 	void FocusEditorWidget::nextFrame()
@@ -132,6 +138,18 @@ namespace RackFocusFixer
 			return;
 		const int frameSkip(frames.size() / 10);
 		frameIndex = (frameIndex + frames.size() - frameSkip) % frames.size();
+		update();
+    }
+    
+    void FocusEditorWidget::nextRefocusKey()
+    {
+		refocusKeySelected = (refocusKeySelected + 1) % refocusKeyCount;
+		update();
+    }
+    
+    void FocusEditorWidget::prevRefocusKey()
+    {
+		refocusKeySelected = (refocusKeySelected + refocusKeyCount - 1) % refocusKeyCount;
 		update();
     }
 	
@@ -176,6 +194,32 @@ namespace RackFocusFixer
             painter.drawText(w*percentage+3, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignLeft, text);
         else
             painter.drawText(w*percentage-101, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignRight, text);
+            
+        // draw the refocus line and points
+        if (refocusSetState == RSS_COMPLETE)
+        {
+			painter.drawLine(refocusLineStart, refocusLineEnd);
+			for (unsigned i = 0; i < refocusKeyCount; ++i)
+			{
+				const QPointF keyPos(
+					QPointF(refocusLineStart) +
+					QPointF(refocusLineEnd - refocusLineStart) * (float(i)/float(refocusKeyCount-1))
+				);
+				painter.setBrush(Qt::white);
+				if (i == refocusKeySelected)
+				{
+					painter.drawEllipse(keyPos, 5, 5);
+					painter.setBrush(Qt::black);
+					painter.drawEllipse(keyPos, 4, 4);
+				}
+				else
+					painter.drawEllipse(keyPos, 4, 4);
+			}
+        }
+        else if (refocusSetState == RSS_START)
+        {
+			painter.drawEllipse(refocusLineStart, 4, 4);
+        }
     }
 
     void FocusEditorWidget::timerEvent(QTimerEvent *)
@@ -193,6 +237,8 @@ namespace RackFocusFixer
 			case Qt::Key_Space: bPaused = !bPaused; break;
 			case Qt::Key_Right: event->modifiers() & Qt::ShiftModifier ? nextFrameBlock() : nextFrame(); break;
 			case Qt::Key_Left: event->modifiers() & Qt::ShiftModifier ? prevFrameBlock() : prevFrame(); break;
+			case Qt::Key_Up: nextRefocusKey(); break;
+			case Qt::Key_Down: prevRefocusKey(); break;
 			default: break;
 		}
     }
@@ -209,7 +255,28 @@ namespace RackFocusFixer
 
     void FocusEditorWidget::mousePressEvent(QMouseEvent *event)
     {
-
+		switch (refocusSetState)
+		{
+			case RSS_NONE:
+			case RSS_COMPLETE:
+				refocusLineStart = event->pos();
+				refocusSetState = RSS_START;
+				update();
+			break;
+			case RSS_START:
+				refocusLineEnd = event->pos();
+				refocusSetState = RSS_COMPLETE;
+				refocusKeyCount = QInputDialog::getInt(
+					this,
+					tr("Input keypoint count"),
+					tr("Choose the number of refocus keypoints"),
+					refocusKeyCount, 2, 1000
+				);
+				refocusKeySelected = std::min(refocusKeySelected, refocusKeyCount-1);
+				update();
+			break;
+			default: break; 
+		};
     }
 
     void FocusEditorWidget::mouseReleaseEvent(QMouseEvent *event)
