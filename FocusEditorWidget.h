@@ -25,8 +25,13 @@ namespace RackFocusFixer
 		
 	protected:
 		void paintEvent(QPaintEvent * event);
-        void timerEvent(QTimerEvent *);
-		
+        void timerEvent(QTimerEvent *event);
+        void keyPressEvent(QKeyEvent *event);
+        void mouseMoveEvent(QMouseEvent *event);
+        void mouseDoubleClickEvent(QMouseEvent *event);
+        void mousePressEvent(QMouseEvent *event);
+        void mouseReleaseEvent(QMouseEvent *event);
+
 	protected:
 		typedef QPixmap Frame;
 		typedef QList<Frame> Frames;

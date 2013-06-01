@@ -61,6 +61,7 @@ namespace RackFocusFixer
 
         QProgressDialog progress("Loading Frames...", "Stop Loading", 0, filesCount, this);
         progress.setWindowModality(Qt::WindowModal);
+        progress.show();
 
         counter = 0;
         bool first(true);
@@ -97,8 +98,29 @@ namespace RackFocusFixer
 	{
 		if (frames.empty())
 			return;
-		QPainter painter(this);
+        float percentage = frameIndex / (float) frames.size();
+        const int timelineHeight = 50;
+        const int w = width();
+        const int h = height();
+
+        QPainter painter(this);
+        QFont font = painter.font();
+        font.setPointSize(8);
+        painter.setFont(font);
+
+        // draw the frame pixmap
         painter.drawPixmap(0, 0, frames[frameIndex]);
+
+        // draw the timeline
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.setPen(Qt::white);
+        painter.drawLine(0, timelineHeight, w, timelineHeight);
+        painter.drawLine(0, 0, w, 0);
+        painter.drawLine(w*percentage, 0, w*percentage, timelineHeight);
+        if (w*(1-percentage) < 110)
+            painter.drawText(w*percentage+1, timelineHeight-10, 100, 10, Qt::AlignLeft, QString("%1").arg(frameIndex));
+        else
+            painter.drawText(w*percentage-101, timelineHeight-10, 100, 10, Qt::AlignRight, QString("%1").arg(frameIndex));
     }
 
     void FocusEditorWidget::timerEvent(QTimerEvent *)
@@ -108,7 +130,32 @@ namespace RackFocusFixer
         {
             frameIndex = (frameIndex + 1) % frames.size();
             repaint();
-            qDebug() << "frame" << frameIndex;
         }
     }
+
+    void FocusEditorWidget::keyPressEvent(QKeyEvent *event)
+    {
+        if(event->key() == Qt::Key_Space) bPaused = !bPaused;
+    }
+
+    void FocusEditorWidget::mouseMoveEvent(QMouseEvent *event)
+    {
+
+    }
+
+    void FocusEditorWidget::mouseDoubleClickEvent(QMouseEvent *event)
+    {
+
+    }
+
+    void FocusEditorWidget::mousePressEvent(QMouseEvent *event)
+    {
+
+    }
+
+    void FocusEditorWidget::mouseReleaseEvent(QMouseEvent *event)
+    {
+
+    }
+
 } // RackFocusFixer
