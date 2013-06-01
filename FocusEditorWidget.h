@@ -5,6 +5,11 @@
 #define __FOCUS_EDITOR_WIDGET_H
 
 #include <QWidget>
+#include <QList>
+#include <QPixmap>
+#include <QString>
+
+class QPaintEvent;
 
 namespace RackFocusFixer
 {
@@ -12,6 +17,19 @@ namespace RackFocusFixer
 	{
 		Q_OBJECT
 		
+	public:
+		FocusEditorWidget();
+		void loadFrames(const QString& prefix);
+		
+	protected:
+		void paintEvent(QPaintEvent * event);
+		
+	protected:
+		typedef QPixmap Frame;
+		typedef QList<Frame> Frames;
+		
+		Frames frames;
+		unsigned frameIndex;
 	};
 }; // RackFocusFixer
 
