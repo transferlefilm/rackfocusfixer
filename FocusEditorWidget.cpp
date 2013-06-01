@@ -65,6 +65,7 @@ namespace RackFocusFixer
 
         counter = 0;
         bool first(true);
+        unsigned lastPercentageLoad(0);
         while (true)
 		{
 			// load file
@@ -87,10 +88,15 @@ namespace RackFocusFixer
 			// store in frame list
 			frames.push_back(pixmap);
 			bFramesHaveAlpha = bFramesHaveAlpha || pixmap.hasAlpha();
-            progress.setValue(counter);
-            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
-            if (progress.wasCanceled())
-                break;
+			const unsigned percentageLoad((100*frames.size())/filesCount);
+			if (percentageLoad != lastPercentageLoad);
+			{
+				progress.setValue(counter);
+				QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+				if (progress.wasCanceled())
+					break;
+				lastPercentageLoad = percentageLoad;
+			}
 		}
         qDebug() << frames.size() << "frames loaded";
 	}
