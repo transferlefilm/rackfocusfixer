@@ -19,10 +19,13 @@ namespace RackFocusFixer
 		
 	public:
 		FocusEditorWidget();
-		void loadFrames(const QString& prefix);
+        void loadFrames(const QString& prefix, const int digits=4, const QString &ext="png");
+        void loadFramesFolder();
+        int frameCount() const;
 		
 	protected:
 		void paintEvent(QPaintEvent * event);
+        void timerEvent(QTimerEvent *);
 		
 	protected:
 		typedef QPixmap Frame;
@@ -30,7 +33,8 @@ namespace RackFocusFixer
 		
 		Frames frames;
 		unsigned frameIndex;
+        bool bPaused;
 	};
-}; // RackFocusFixer
+} // RackFocusFixer
 
 #endif // __FOCUS_EDITOR_WIDGET_H
