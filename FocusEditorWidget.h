@@ -26,6 +26,8 @@ namespace RackFocusFixer
 	protected:
 		void nextFrame();
         void prevFrame();
+        void nextFrameBlock();
+        void prevFrameBlock();
         
 		void paintEvent(QPaintEvent * event);
         void timerEvent(QTimerEvent *event);

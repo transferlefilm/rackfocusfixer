@@ -111,6 +111,24 @@ namespace RackFocusFixer
 		update();
 	}
 	
+	void FocusEditorWidget::nextFrameBlock()
+	{
+		if (!frames.size())
+			return;
+		const int frameSkip(frames.size() / 10);
+		frameIndex = (frameIndex + frameSkip) % frames.size();
+		update();
+	}
+    
+    void FocusEditorWidget::prevFrameBlock()
+    {
+		if (!frames.size())
+			return;
+		const int frameSkip(frames.size() / 10);
+		frameIndex = (frameIndex + frames.size() - frameSkip) % frames.size();
+		update();
+    }
+	
 	void FocusEditorWidget::paintEvent(QPaintEvent * event)
 	{
 		if (frames.empty())
@@ -167,8 +185,8 @@ namespace RackFocusFixer
         switch (event->key())
         {
 			case Qt::Key_Space: bPaused = !bPaused; break;
-			case Qt::Key_Right: nextFrame(); break;
-			case Qt::Key_Left: prevFrame(); break;
+			case Qt::Key_Right: event->modifiers() & Qt::ShiftModifier ? nextFrameBlock() : nextFrame(); break;
+			case Qt::Key_Left: event->modifiers() & Qt::ShiftModifier ? prevFrameBlock() : prevFrame(); break;
 			default: break;
 		}
     }
