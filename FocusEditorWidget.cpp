@@ -13,7 +13,7 @@
 namespace RackFocusFixer
 {
 	FocusEditorWidget::FocusEditorWidget():
-        frameIndex(0), bPaused(false)
+        frameIndex(0), bFramesHaveAlpha(false), bPaused(false)
 	{
 		setAttribute(Qt::WA_OpaquePaintEvent);
 	}
@@ -86,6 +86,7 @@ namespace RackFocusFixer
 			}
 			// store in frame list
 			frames.push_back(pixmap);
+			bFramesHaveAlpha = bFramesHaveAlpha || pixmap.hasAlpha();
             progress.setValue(counter);
             QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
             if (progress.wasCanceled())
@@ -94,48 +95,82 @@ namespace RackFocusFixer
         qDebug() << frames.size() << "frames loaded";
 	}
 	
+	void FocusEditorWidget::nextFrame()
+	{
+		if (!frames.size())
+			return;
+		frameIndex = (frameIndex + 1) % frames.size();
+		update();
+	}
+	
+	void FocusEditorWidget::prevFrame()
+	{
+		if (!frames.size())
+			return;
+		frameIndex = (frameIndex + frames.size() - 1) % frames.size();
+		update();
+	}
+	
 	void FocusEditorWidget::paintEvent(QPaintEvent * event)
 	{
 		if (frames.empty())
 			return;
-        float percentage = frameIndex / (float) frames.size();
+        const float percentage = frameIndex / (float) frames.size();
         const int timelineHeight = 50;
         const int w = width();
         const int h = height();
 
         QPainter painter(this);
         QFont font = painter.font();
-        font.setPointSize(8);
+        font.setPointSize(12);
         painter.setFont(font);
+        const QFontMetrics fontMetrics(font);
+        
+        // if alpha, draw background
+        if (bFramesHaveAlpha)
+        {
+			int c(0);
+			for (int y = 0; y < h+31; ++y)
+				for (int x = 0; x < w+31; ++x, ++c)
+					painter.fillRect(QRect(x*32, y*32, 32, 32), (c % 2) == 0 ? Qt::black : Qt::white);
+        }
 
         // draw the frame pixmap
         painter.drawPixmap(0, 0, frames[frameIndex]);
 
         // draw the timeline
         painter.setRenderHint(QPainter::Antialiasing);
+        painter.fillRect(QRect(0, 0, w, timelineHeight), QColor(0,0,0,128));
         painter.setPen(Qt::white);
         painter.drawLine(0, timelineHeight, w, timelineHeight);
         painter.drawLine(0, 0, w, 0);
-        painter.drawLine(w*percentage, 0, w*percentage, timelineHeight);
-        if (w*(1-percentage) < 110)
-            painter.drawText(w*percentage+1, timelineHeight-10, 100, 10, Qt::AlignLeft, QString("%1").arg(frameIndex));
+        painter.fillRect(QRect(w*percentage, 0, 2, timelineHeight), Qt::white);
+        const int textHeight(fontMetrics.height());
+        const QString text(QString("%1").arg(frameIndex));
+        const int textWidth(fontMetrics.width(text));
+        if (w*percentage < textWidth+3)
+            painter.drawText(w*percentage+3, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignLeft, text);
         else
-            painter.drawText(w*percentage-101, timelineHeight-10, 100, 10, Qt::AlignRight, QString("%1").arg(frameIndex));
+            painter.drawText(w*percentage-101, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignRight, text);
     }
 
     void FocusEditorWidget::timerEvent(QTimerEvent *)
     {
-        if(!frames.size()) return;
         if (!bPaused)
         {
-            frameIndex = (frameIndex + 1) % frames.size();
-            repaint();
+            nextFrame();
         }
     }
 
     void FocusEditorWidget::keyPressEvent(QKeyEvent *event)
     {
-        if(event->key() == Qt::Key_Space) bPaused = !bPaused;
+        switch (event->key())
+        {
+			case Qt::Key_Space: bPaused = !bPaused; break;
+			case Qt::Key_Right: nextFrame(); break;
+			case Qt::Key_Left: prevFrame(); break;
+			default: break;
+		}
     }
 
     void FocusEditorWidget::mouseMoveEvent(QMouseEvent *event)

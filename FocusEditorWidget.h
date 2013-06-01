@@ -24,6 +24,9 @@ namespace RackFocusFixer
         int frameCount() const;
 		
 	protected:
+		void nextFrame();
+        void prevFrame();
+        
 		void paintEvent(QPaintEvent * event);
         void timerEvent(QTimerEvent *event);
         void keyPressEvent(QKeyEvent *event);
@@ -38,6 +41,7 @@ namespace RackFocusFixer
 		
 		Frames frames;
 		unsigned frameIndex;
+		bool bFramesHaveAlpha;
         bool bPaused;
 	};
 } // RackFocusFixer
