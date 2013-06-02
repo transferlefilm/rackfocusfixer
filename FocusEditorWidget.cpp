@@ -48,6 +48,7 @@ void FocusEditorWidget::loadFrames(const QString& prefix, const int digits, cons
     unsigned counter(0);
     unsigned filesCount(0);
     const unsigned digitCount(digits);
+    this->prefix = prefix;
 
     // we first check how many images we are going to load
     while (true)
@@ -106,6 +107,47 @@ void FocusEditorWidget::loadFrames(const QString& prefix, const int digits, cons
         }
     }
     setWindowTitle(QString(tr("Rack Focus Fixer - %1 frames loaded").arg(frames.size())));
+}
+
+void FocusEditorWidget::saveRefocusKeys()
+{
+    QString filename(prefix+".keys");
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly))
+    {
+        qDebug() << "unable to open keys file for writing";
+        return;
+    }
+    QDataStream out(&file);
+    out << (quint32) refocusKeyCount;
+    out << refocusLineStart;
+    out << refocusLineEnd;
+    for (unsigned i=0; i<refocusKeyCount; i++)
+    {
+        out << refocusKeys[i];
+    }
+}
+
+void FocusEditorWidget::loadRefocusKeys()
+{
+    QString filename(prefix+".keys");
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        qDebug() << "unable to open keys file for reading";
+        return;
+    }
+    QDataStream in(&file);
+    in >> refocusKeyCount;
+    in >> refocusLineStart;
+    in >> refocusLineEnd;
+    refocusKeys.resize(refocusKeyCount);
+    for (unsigned i=0; i<refocusKeyCount; i++)
+    {
+        in >> refocusKeys[i];
+    }
+    refocusSetState = RSS_COMPLETE;
+    update();
 }
 
 void FocusEditorWidget::nextFrame()
@@ -167,8 +209,12 @@ void FocusEditorWidget::setRefocusKeyFrame()
         }
     }
     refocusKeys[refocusKeySelected] = frameIndex;
-    qDebug() << "added refocus key " << refocusKeySelected << " at frame" << frameIndex;
     update();
+}
+
+void FocusEditorWidget::resetRefocusKeyFrame()
+{
+    refocusKeys[refocusKeySelected] = -1;
 }
 
 void FocusEditorWidget::paintEvent(QPaintEvent * event)
@@ -271,6 +317,9 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
             {
                 painter.setBrush(Qt::white);
                 painter.drawEllipse(keyPos, 5, 5);
+                painter.setPen(QPen(Qt::white, 0.5, Qt::DotLine));
+                painter.drawLine(keyPos-QPointF(20,0),keyPos+QPointF(20,0));
+                painter.drawLine(keyPos-QPointF(0,20),keyPos+QPointF(0,20));
             }
             else
                 painter.drawEllipse(keyPos, 4, 4);
@@ -307,8 +356,12 @@ void FocusEditorWidget::keyPressEvent(QKeyEvent *event)
     case Qt::Key_Up: nextRefocusKey(); break;
     case Qt::Key_Down: prevRefocusKey(); break;
     case Qt::Key_Enter:
-    case Qt::Key_Return:
-        setRefocusKeyFrame(); break;
+    case Qt::Key_Return: setRefocusKeyFrame(); break;
+    case Qt::Key_Backspace:
+    case Qt::Key_Delete: resetRefocusKeyFrame(); break;
+    case Qt::Key_S:
+    case Qt::Key_Save: saveRefocusKeys(); break;
+    case Qt::Key_L: loadRefocusKeys(); break;
     default: break;
     }
 }

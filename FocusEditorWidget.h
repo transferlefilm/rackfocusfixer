@@ -22,7 +22,9 @@ namespace RackFocusFixer
         void loadFrames(const QString& prefix, const int digits=4, const QString &ext="png");
         void loadFramesFolder();
         int frameCount() const;
-		
+        void saveRefocusKeys();
+        void loadRefocusKeys();
+
 	protected:
 		void nextFrame();
         void prevFrame();
@@ -31,6 +33,7 @@ namespace RackFocusFixer
         void nextRefocusKey();
         void prevRefocusKey();
         void setRefocusKeyFrame();
+        void resetRefocusKeyFrame();
         
 		void paintEvent(QPaintEvent * event);
         void timerEvent(QTimerEvent *event);
@@ -45,6 +48,7 @@ namespace RackFocusFixer
 		typedef QList<Frame> Frames;
         typedef std::vector<int> RefocusKeys;
 		
+        QString prefix;
 		Frames frames;
 		unsigned frameIndex;
 		bool bFramesHaveAlpha;
