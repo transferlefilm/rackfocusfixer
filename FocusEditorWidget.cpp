@@ -95,6 +95,7 @@ void FocusEditorWidget::loadFrames(const QString& prefix, const int digits, cons
         }
         // store in frame list
         frames.push_back(pixmap);
+        frameNames.push_back(fileName);
         bFramesHaveAlpha = bFramesHaveAlpha || pixmap.hasAlpha();
         const unsigned percentageLoad((100*frames.size())/filesCount);
 

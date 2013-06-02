@@ -51,10 +51,12 @@ namespace RackFocusFixer
 	protected:
 		typedef QPixmap Frame;
 		typedef QList<Frame> Frames;
+		typedef QList<QString> FrameNames;
         typedef std::vector<int> RefocusKeys;
 		
         QString prefix;
 		Frames frames;
+		FrameNames frameNames;
 		unsigned frameIndex;
 		bool bFramesHaveAlpha;
 		
