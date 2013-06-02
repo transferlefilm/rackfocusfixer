@@ -10,10 +10,14 @@
 #include <QString>
 
 class QPaintEvent;
-class ExportDialog;
+class Ui_ExportDialog;
 
 namespace RackFocusFixer
 {
+typedef QPixmap Frame;
+typedef QList<Frame> Frames;
+typedef std::vector<int> RefocusKeys;
+
 	class FocusEditorWidget: public QWidget
 	{
 		Q_OBJECT
@@ -36,6 +40,7 @@ namespace RackFocusFixer
         void prevRefocusKey();
         void setRefocusKeyFrame();
         void resetRefocusKeyFrame();
+        QImage GetInterpolatedFrame(float frameApproximation);
         
 		void paintEvent(QPaintEvent * event);
         void timerEvent(QTimerEvent *event);
@@ -47,6 +52,9 @@ namespace RackFocusFixer
 
     public slots:
         void exportVideo();
+
+    private:
+        static const unsigned timelineHeight = 50;
 
 	protected:
 		typedef QPixmap Frame;
@@ -73,7 +81,8 @@ namespace RackFocusFixer
         RefocusKeys refocusKeys;
 		
         bool bPaused;
-        ExportDialog *exportDialog;
+        Ui_ExportDialog *exporter;
+        QDialog *exportDialog;
 	};
 } // RackFocusFixer
 
