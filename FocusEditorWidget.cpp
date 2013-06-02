@@ -446,8 +446,43 @@ void FocusEditorWidget::mouseReleaseEvent(QMouseEvent *event)
 
 void FocusEditorWidget::exportVideo()
 {
+    const bool bBestDuration(exporter->durationCheck->isChecked());
+    const int duration(bBestDuration ? -1 : exporter->durationSpin->value());
+    const int distanceMethod(exporter->distanceCombo->currentIndex());
+    const int rampMethod(exporter->rampCombo->currentIndex());
+    FrameList frameList;
+    switch(rampMethod)
+    {
+    case 0: frameList = getLinearFrames(duration, refocusKeys); break;
+    case 1:
+    case 2:
+    case 3:
+        frameList = getRampFrames(rampMethod-1, duration, refocusKeys); break;
+    }
 
     qDebug() << "exporting!";
+
+}
+
+unsigned FocusEditorWidget::getBestDuration()
+{
+    //TODO: compute the frames size that requires the least interpolations
+    return frames.size();
+}
+
+FrameList FocusEditorWidget::getLinearFrames(int duration, RefocusKeys keys)
+{
+    FrameList list(duration==-1 ? getBestDuration() : duration);
+    //TODO: compute the interpolation (for now it's completely bogus!
+    for (unsigned i=0; i<list.size(); i++) list[i] = i*frames.size()/list.size();
+    return list;
+}
+
+FrameList FocusEditorWidget::getRampFrames(int easeMethod, int duration, RefocusKeys keys)
+{
+    // easeMethod: 0: ease-in + ease-out, 1: ease-in, 2: ease-out
+    //TODO: compute the ease-in ease-out
+    return getLinearFrames(duration, keys);
 }
 
 QImage FocusEditorWidget::GetInterpolatedFrame(float frameApproximation)

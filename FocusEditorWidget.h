@@ -17,6 +17,7 @@ namespace RackFocusFixer
 typedef QPixmap Frame;
 typedef QList<Frame> Frames;
 typedef std::vector<int> RefocusKeys;
+typedef std::vector<int> FrameList;
 
 	class FocusEditorWidget: public QWidget
 	{
@@ -49,6 +50,11 @@ typedef std::vector<int> RefocusKeys;
         void mouseDoubleClickEvent(QMouseEvent *event);
         void mousePressEvent(QMouseEvent *event);
         void mouseReleaseEvent(QMouseEvent *event);
+
+    private:
+        unsigned getBestDuration();
+        FrameList getLinearFrames(int duration, RefocusKeys keys);
+        FrameList getRampFrames(int easeMethod, int duration, RefocusKeys keys);
 
     public slots:
         void exportVideo();

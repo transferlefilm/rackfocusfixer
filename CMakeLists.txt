@@ -9,6 +9,7 @@ find_package(Qt4 REQUIRED)
 
 set(QT_USE_QTMAIN ON)
 include(${QT_USE_FILE})
+include_directories (${CMAKE_BINARY_DIR})
 
 set(SRCS FocusEditorWidget.cpp main.cpp)
 qt4_wrap_ui(UIS exportDialog.ui)
