@@ -299,26 +299,8 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
 
         // and on the timeline
         QPointF previousKeyPos;
-        RefocusKeys interpolatedKeys = refocusKeys;
-        for (unsigned i=0; i < refocusKeys.size(); i++)
-        {
-            if (interpolatedKeys[i] != -1) continue;
-            if(!i)
-                interpolatedKeys[i] = 0;
-            else
-            {
-                unsigned j=i+1;
-                while(j<refocusKeys.size())
-                {
-                    if(interpolatedKeys[j] != -1) break;
-                    j++;
-                }
-                if(j<refocusKeys.size())
-                    interpolatedKeys[i] = interpolatedKeys[i-1] + (interpolatedKeys[j]-interpolatedKeys[i-1])/(j-i+1);
-                else
-                    interpolatedKeys[i] = interpolatedKeys[i-1] + (frames.size()-interpolatedKeys[i-1])/(refocusKeys.size()-i);
-            }
-        }
+        RefocusKeys interpolatedKeys = getFullKeypointList();
+
         for (unsigned i=0; i < refocusKeys.size(); i++)
         {
             const int keyFrame(interpolatedKeys[i]);
@@ -445,48 +427,70 @@ void FocusEditorWidget::mouseReleaseEvent(QMouseEvent *event)
 
 }
 
-void FocusEditorWidget::exportVideo()
+RefocusKeys FocusEditorWidget::getFullKeypointList() const
 {
-    const bool bBestDuration(exporter->durationCheck->isChecked());
-    const int duration(bBestDuration ? -1 : exporter->durationSpin->value());
-    const int distanceMethod(exporter->distanceCombo->currentIndex());
-    const int rampMethod(exporter->rampCombo->currentIndex());
-    FrameList frameList;
-    switch(rampMethod)
+    RefocusKeys interpolatedKeys = refocusKeys;
+    for (unsigned i=0; i < refocusKeys.size(); i++)
     {
-    case 0: frameList = getLinearFrames(duration, refocusKeys); break;
-    case 1:
-    case 2:
-    case 3:
-        frameList = getRampFrames(rampMethod-1, duration, refocusKeys); break;
+        if (interpolatedKeys[i] != -1) continue;
+        if(!i)
+            interpolatedKeys[i] = 0;
+        else
+        {
+            unsigned j=i+1;
+            while(j<refocusKeys.size())
+            {
+                if(interpolatedKeys[j] != -1) break;
+                j++;
+            }
+            if(j<refocusKeys.size())
+                interpolatedKeys[i] = interpolatedKeys[i-1] + (interpolatedKeys[j]-interpolatedKeys[i-1])/(j-i+1);
+            else
+                interpolatedKeys[i] = interpolatedKeys[i-1] + (frames.size()-interpolatedKeys[i-1])/(refocusKeys.size()-i);
+        }
     }
-
-    qDebug() << "exporting!";
-
+    return interpolatedKeys;
 }
 
-unsigned FocusEditorWidget::getBestDuration()
+unsigned FocusEditorWidget::getBestDuration() const
 {
     //TODO: compute the frames size that requires the least interpolations
     return frames.size();
 }
 
-FrameList FocusEditorWidget::getLinearFrames(int duration, RefocusKeys keys)
+FrameList FocusEditorWidget::getLinearFrames(const int& duration, const RefocusKeys& keys) const
 {
     FrameList list(duration==-1 ? getBestDuration() : duration);
-    //TODO: compute the interpolation (for now it's completely bogus!
-    for (unsigned i=0; i<list.size(); i++) list[i] = i*frames.size()/list.size();
+    //TODO: compute the interpolation (for now it's completely bogus!)
+    for (unsigned i=0; i<list.size(); i++)
+    {
+        float percentage = float(i) / float(list.size()-1);
+        int keypointPre = int(percentage * float(keys.size()-1));
+        if (percentage*float(keys.size()-1) - float(keypointPre) < 1e-8) // we are on a keypoint, or sufficiently close
+        {
+            list[i] = keys[keypointPre];
+        }
+        else // we interpolate between the two closest keypoints
+        {
+            int framePre = keys[keypointPre];
+            int framePost = keys[keypointPre+1];
+            float remainder = percentage*float(keys.size()-1) - float(keypointPre);
+            list[i] = framePre + (framePost-framePre)*remainder;
+            qDebug() << "i" << i << "keyframe" << framePre << "remainder" << remainder << "frame" << list[i];
+        }
+    }
+    //for (unsigned i=0; i<list.size(); i++) list[i] = i*frames.size()/list.size();
     return list;
 }
 
-FrameList FocusEditorWidget::getRampFrames(int easeMethod, int duration, RefocusKeys keys)
+FrameList FocusEditorWidget::getRampFrames(const int& easeMethod, const int& duration, const RefocusKeys& keys) const
 {
     // easeMethod: 0: ease-in + ease-out, 1: ease-in, 2: ease-out
     //TODO: compute the ease-in ease-out
     return getLinearFrames(duration, keys);
 }
 
-QImage FocusEditorWidget::getInterpolatedFrame(float frameApproximation) const
+QImage FocusEditorWidget::getInterpolatedFrame(const float& frameApproximation) const
 {
     unsigned index = unsigned(frameApproximation);
     // handle corner cases
@@ -511,6 +515,40 @@ QImage FocusEditorWidget::getInterpolatedFrame(float frameApproximation) const
 	p1.drawImage(firstFrame.rect(), secondFrame, secondFrame.rect());
 	p1.end();
     return firstFrame;
+}
+
+void FocusEditorWidget::exportVideo()
+{
+    const bool bBestDuration(exporter->durationCheck->isChecked());
+    const int duration(bBestDuration ? -1 : exporter->durationSpin->value());
+    const int distanceMethod(exporter->distanceCombo->currentIndex());
+    const int rampMethod(exporter->rampCombo->currentIndex());
+    FrameList frameList;
+    switch(rampMethod)
+    {
+    case 0: frameList = getLinearFrames(duration, getFullKeypointList()); break;
+    case 1:
+    case 2:
+    case 3:
+        frameList = getRampFrames(rampMethod-1, duration, getFullKeypointList()); break;
+    }
+
+    QProgressDialog progress(tr("Exporting Output Frames..."), tr("Stop Exporting"), 0, frameList.size(), this);
+    progress.setWindowModality(Qt::WindowModal);
+    progress.show();
+    int i(0);
+    for (; i<frameList.size(); i++)
+    {
+        QImage image = getInterpolatedFrame(frameList[i]);
+        QString fileName = QString("%1-fixed%2.jpg").arg(prefix).arg(i+1,5, 10, QChar('0'));
+        image.save(fileName);
+
+        progress.setValue(i);
+        qApp->processEvents(QEventLoop::AllEvents);
+        if (progress.wasCanceled())
+            break;
+    }
+    qDebug() << "Exported" << i << "frames";
 }
 
 } // RackFocusFixer
