@@ -453,7 +453,7 @@ void FocusEditorWidget::exportVideo()
 
 QImage FocusEditorWidget::getInterpolatedFrame(float frameApproximation) const
 {
-    unsigned index = unsigned(frameApproximation);
+    const unsigned index = unsigned(frameApproximation);
     // handle corner cases
     if (index >= frameNames.size())
 		return QImage(frameNames.last());
@@ -469,7 +469,7 @@ QImage FocusEditorWidget::getInterpolatedFrame(float frameApproximation) const
 	// set alpha on image 2
 	QPainter p2(&secondFrame);
 	p2.setCompositionMode(QPainter::CompositionMode_DestinationIn);
-	p2.fillRect(secondFrame.rect(), QColor(0, 0, 0, alpha2));
+	p2.fillRect(secondFrame.rect(), QColor(0, 0, 0, (255-alpha2)));
 	p2.end();
 	// paint image 2 on image 1
 	QPainter p1(&firstFrame);
