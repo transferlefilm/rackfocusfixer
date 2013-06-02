@@ -14,6 +14,8 @@
 
 namespace RackFocusFixer
 {
+using namespace std;
+
 FocusEditorWidget::FocusEditorWidget():
     frameIndex(0),
     bFramesHaveAlpha(false),
@@ -282,6 +284,8 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
     {
         // we draw it on the image itself
         if (bShowLine)
+        painter.drawLine(refocusLineStart, refocusLineEnd);
+        for (unsigned i = 0; i < refocusKeyCount; ++i)
         {
             painter.drawLine(refocusLineStart, refocusLineEnd);
             for (unsigned i = 0; i < refocusKeyCount; ++i)
@@ -303,9 +307,11 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
         }
         else
         {
+			const float factor(float(i)/float(refocusKeyCount-1));
             const QPointF keyPos(
                         QPointF(refocusLineStart) +
                         QPointF(refocusLineEnd - refocusLineStart) * (float(refocusKeySelected)/float(refocusKeyCount-1))
+                        QPointF(refocusLineEnd - refocusLineStart) * factor
                         );
             painter.setBrush(Qt::NoBrush);
             painter.setPen(QPen(Qt::white,2));
@@ -315,6 +321,15 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
             painter.drawLine(keyPos.x()+5, keyPos.y(), keyPos.x()+20, keyPos.y());
             painter.drawLine(keyPos.x(), keyPos.y()-20, keyPos.x(), keyPos.y()-5);
             painter.drawLine(keyPos.x(), keyPos.y()+5, keyPos.x(), keyPos.y()+20);
+            painter.setBrush(Qt::white);
+            if (i == refocusKeySelected)
+            {
+                painter.drawEllipse(keyPos, 5, 5);
+                painter.setBrush(Qt::black);
+                painter.drawEllipse(keyPos, 4, 4);
+            }
+            else
+                painter.drawEllipse(keyPos, 4, 4);
         }
 
         // and on the timeline
@@ -396,7 +411,7 @@ void FocusEditorWidget::mouseMoveEvent(QMouseEvent *event)
     if (event->buttons() == Qt::LeftButton && event->y() < timelineHeight)
     {
         const float percentage = float(event->x()) / float(width());
-        frameIndex = int(float(frames.size())*percentage);
+        frameIndex = max(min(int(float(frames.size())*percentage), frames.size()-1), 0);
         update();
     }
 
@@ -412,7 +427,7 @@ void FocusEditorWidget::mousePressEvent(QMouseEvent *event)
     if (event->y() < timelineHeight)
     {
         const float percentage = float(event->x()) / float(width());
-        frameIndex = int(float(frames.size())*percentage);
+        frameIndex = max(min(int(float(frames.size())*percentage), frames.size()-1), 0);
         update();
     }
     else
@@ -479,7 +494,7 @@ unsigned FocusEditorWidget::getBestDuration() const
     return frames.size();
 }
 
-FrameList FocusEditorWidget::getLinearFrames(const int& duration, const RefocusKeys& keys) const
+FrameList FocusEditorWidget::getLinearFrames(const int duration, const RefocusKeys& keys) const
 {
     FrameList list(duration==-1 ? getBestDuration() : duration);
     //TODO: compute the interpolation (for now it's completely bogus!)
@@ -504,7 +519,7 @@ FrameList FocusEditorWidget::getLinearFrames(const int& duration, const RefocusK
     return list;
 }
 
-FrameList FocusEditorWidget::getRampFrames(const int& easeMethod, const int& duration, const RefocusKeys& keys) const
+FrameList FocusEditorWidget::getRampFrames(const int easeMethod, const int duration, const RefocusKeys& keys) const
 {
     // easeMethod: 0: ease-in + ease-out, 1: ease-in, 2: ease-out
     //TODO: compute the ease-in ease-out
