@@ -267,51 +267,52 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
     const int textHeight(fontMetrics.height());
     // scope for local variables for text
     {
-		const QString text(QString("%1").arg(frameIndex));
-		const int textWidth(fontMetrics.width(text));
-		if (w*percentage < textWidth*2+3)
-			painter.drawText(w*percentage+3, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignLeft, text);
-		else
-			painter.drawText(w*percentage-101, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignRight, text);
-		painter.setPen(Qt::gray);
-		painter.drawText(1, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignLeft, QString("0"));
-		painter.drawText(w-100, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignRight, QString("%1").arg(frames.size()));
-		painter.setPen(Qt::white);
-	}
+        const QString text(QString("%1").arg(frameIndex));
+        const int textWidth(fontMetrics.width(text));
+        if (w*percentage < textWidth*2+3)
+            painter.drawText(w*percentage+3, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignLeft, text);
+        else
+            painter.drawText(w*percentage-101, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignRight, text);
+        painter.setPen(Qt::gray);
+        painter.drawText(1, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignLeft, QString("0"));
+        painter.drawText(w-100, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignRight, QString("%1").arg(frames.size()));
+        painter.setPen(Qt::white);
+    }
 
     // draw the refocus line and points
     if (refocusSetState == RSS_COMPLETE)
     {
         // we draw it on the image itself
         if (bShowLine)
-        painter.drawLine(refocusLineStart, refocusLineEnd);
-        for (unsigned i = 0; i < refocusKeyCount; ++i)
         {
             painter.drawLine(refocusLineStart, refocusLineEnd);
             for (unsigned i = 0; i < refocusKeyCount; ++i)
             {
-                const QPointF keyPos(
-                            QPointF(refocusLineStart) +
-                            QPointF(refocusLineEnd - refocusLineStart) * (float(i)/float(refocusKeyCount-1))
-                            );
-                painter.setBrush(Qt::white);
-                if (i == refocusKeySelected)
+                painter.drawLine(refocusLineStart, refocusLineEnd);
+                for (unsigned i = 0; i < refocusKeyCount; ++i)
                 {
-                    painter.drawEllipse(keyPos, 5, 5);
-                    painter.setBrush(Qt::black);
-                    painter.drawEllipse(keyPos, 4, 4);
+                    const float factor(float(i)/float(refocusKeyCount-1));
+                    const QPointF keyPos(
+                                QPointF(refocusLineStart) +
+                                QPointF(refocusLineEnd - refocusLineStart) * factor
+                                );
+                    painter.setBrush(Qt::white);
+                    if (i == refocusKeySelected)
+                    {
+                        painter.drawEllipse(keyPos, 5, 5);
+                        painter.setBrush(Qt::black);
+                        painter.drawEllipse(keyPos, 4, 4);
+                    }
+                    else
+                        painter.drawEllipse(keyPos, 4, 4);
                 }
-                else
-                    painter.drawEllipse(keyPos, 4, 4);
             }
         }
         else
         {
-			const float factor(float(i)/float(refocusKeyCount-1));
             const QPointF keyPos(
                         QPointF(refocusLineStart) +
                         QPointF(refocusLineEnd - refocusLineStart) * (float(refocusKeySelected)/float(refocusKeyCount-1))
-                        QPointF(refocusLineEnd - refocusLineStart) * factor
                         );
             painter.setBrush(Qt::NoBrush);
             painter.setPen(QPen(Qt::white,2));
@@ -321,15 +322,6 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
             painter.drawLine(keyPos.x()+5, keyPos.y(), keyPos.x()+20, keyPos.y());
             painter.drawLine(keyPos.x(), keyPos.y()-20, keyPos.x(), keyPos.y()-5);
             painter.drawLine(keyPos.x(), keyPos.y()+5, keyPos.x(), keyPos.y()+20);
-            painter.setBrush(Qt::white);
-            if (i == refocusKeySelected)
-            {
-                painter.drawEllipse(keyPos, 5, 5);
-                painter.setBrush(Qt::black);
-                painter.drawEllipse(keyPos, 4, 4);
-            }
-            else
-                painter.drawEllipse(keyPos, 4, 4);
         }
 
         // and on the timeline
@@ -342,15 +334,15 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
             const double percentage(float(keyFrame)/float(frames.size()-1));
             const QPointF keyPos(percentage >= 1 ? w-1 : percentage*w, timelineHeight/2);
             const QString text(QString("%1").arg(i+1));
-			const int textWidth(fontMetrics.width(text));
+            const int textWidth(fontMetrics.width(text));
             painter.setBrush(Qt::NoBrush);
             painter.setPen(refocusKeys[i]==-1 ? QPen(Qt::white, 1, Qt::DotLine) : QPen(Qt::white));
             if (i == 0)
-				painter.drawText(keyPos.x(), keyPos.y()-6-textHeight, textWidth, textHeight, Qt::AlignLeft, text);
-			else if (i == refocusKeys.size()-1)
-				painter.drawText(keyPos.x()-textWidth, keyPos.y()-6-textHeight, textWidth, textHeight, Qt::AlignRight, text);
-			else
-				painter.drawText(keyPos.x()-textWidth/2, keyPos.y()-6-textHeight, textWidth, textHeight, Qt::AlignHCenter, text);
+                painter.drawText(keyPos.x(), keyPos.y()-6-textHeight, textWidth, textHeight, Qt::AlignLeft, text);
+            else if (i == refocusKeys.size()-1)
+                painter.drawText(keyPos.x()-textWidth, keyPos.y()-6-textHeight, textWidth, textHeight, Qt::AlignRight, text);
+            else
+                painter.drawText(keyPos.x()-textWidth/2, keyPos.y()-6-textHeight, textWidth, textHeight, Qt::AlignHCenter, text);
             if (i == refocusKeySelected)
             {
                 painter.setBrush(Qt::white);
@@ -531,25 +523,25 @@ QImage FocusEditorWidget::getInterpolatedFrame(const float& frameApproximation) 
     const unsigned index = unsigned(frameApproximation);
     // handle corner cases
     if (index >= frameNames.size())
-		return QImage(frameNames.last());
-	if ((float(index) == frameApproximation) ||
-		(index + 1 >= frameNames.size()))
-		return QImage(frameNames[index]);
-	// load two frames
-	QImage firstFrame(QImage(frameNames[index]).convertToFormat(QImage::Format_ARGB32));
-	QImage secondFrame(QImage(frameNames[index+1]).convertToFormat(QImage::Format_ARGB32));
-	// interpolation
-	const float dt(frameApproximation-float(index));
-	const int alpha2(255.f*dt);
-	// set alpha on image 2
-	QPainter p2(&secondFrame);
-	p2.setCompositionMode(QPainter::CompositionMode_DestinationIn);
-	p2.fillRect(secondFrame.rect(), QColor(0, 0, 0, (255-alpha2)));
-	p2.end();
-	// paint image 2 on image 1
-	QPainter p1(&firstFrame);
-	p1.drawImage(firstFrame.rect(), secondFrame, secondFrame.rect());
-	p1.end();
+        return QImage(frameNames.last());
+    if ((float(index) == frameApproximation) ||
+            (index + 1 >= frameNames.size()))
+        return QImage(frameNames[index]);
+    // load two frames
+    QImage firstFrame(QImage(frameNames[index]).convertToFormat(QImage::Format_ARGB32));
+    QImage secondFrame(QImage(frameNames[index+1]).convertToFormat(QImage::Format_ARGB32));
+    // interpolation
+    const float dt(frameApproximation-float(index));
+    const int alpha2(255.f*dt);
+    // set alpha on image 2
+    QPainter p2(&secondFrame);
+    p2.setCompositionMode(QPainter::CompositionMode_DestinationIn);
+    p2.fillRect(secondFrame.rect(), QColor(0, 0, 0, (255-alpha2)));
+    p2.end();
+    // paint image 2 on image 1
+    QPainter p1(&firstFrame);
+    p1.drawImage(firstFrame.rect(), secondFrame, secondFrame.rect());
+    p1.end();
     return firstFrame;
 }
 
