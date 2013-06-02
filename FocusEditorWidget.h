@@ -16,6 +16,7 @@ namespace RackFocusFixer
 {
 typedef QPixmap Frame;
 typedef QList<Frame> Frames;
+typedef QList<QString> FrameNames;
 typedef std::vector<int> RefocusKeys;
 typedef std::vector<float> FrameList;
 
@@ -42,6 +43,7 @@ typedef std::vector<float> FrameList;
         void setRefocusKeyFrame();
         void resetRefocusKeyFrame();
         QImage getInterpolatedFrame(const float &frameApproximation) const;
+        void toggleLine();
         
 		void paintEvent(QPaintEvent * event);
         void timerEvent(QTimerEvent *event);
@@ -64,11 +66,7 @@ typedef std::vector<float> FrameList;
         static const unsigned timelineHeight = 50;
 
 	protected:
-		typedef QPixmap Frame;
-		typedef QList<Frame> Frames;
-		typedef QList<QString> FrameNames;
-        typedef std::vector<int> RefocusKeys;
-		
+
         QString prefix;
 		Frames frames;
 		FrameNames frameNames;
@@ -88,6 +86,7 @@ typedef std::vector<float> FrameList;
         RefocusKeys refocusKeys;
 		
         bool bPaused;
+        bool bShowLine;
         Ui_ExportDialog *exporter;
         QDialog *exportDialog;
 	};

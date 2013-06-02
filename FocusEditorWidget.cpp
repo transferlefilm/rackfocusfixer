@@ -20,12 +20,14 @@ FocusEditorWidget::FocusEditorWidget():
     refocusKeyCount(10),
     refocusKeySelected(0),
     refocusSetState(RSS_NONE),
-    bPaused(false)
+    bPaused(false),
+    bShowLine(true)
 {
     setAttribute(Qt::WA_OpaquePaintEvent);
     exporter = new Ui_ExportDialog();
     exporter->setupUi(exportDialog = new QDialog());
     connect(exporter->exportButton, SIGNAL(clicked()), this, SLOT(exportVideo()));
+    setCursor(Qt::CrossCursor);
 }
 
 void FocusEditorWidget::loadFramesFolder()
@@ -279,22 +281,40 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
     if (refocusSetState == RSS_COMPLETE)
     {
         // we draw it on the image itself
-        painter.drawLine(refocusLineStart, refocusLineEnd);
-        for (unsigned i = 0; i < refocusKeyCount; ++i)
+        if (bShowLine)
+        {
+            painter.drawLine(refocusLineStart, refocusLineEnd);
+            for (unsigned i = 0; i < refocusKeyCount; ++i)
+            {
+                const QPointF keyPos(
+                            QPointF(refocusLineStart) +
+                            QPointF(refocusLineEnd - refocusLineStart) * (float(i)/float(refocusKeyCount-1))
+                            );
+                painter.setBrush(Qt::white);
+                if (i == refocusKeySelected)
+                {
+                    painter.drawEllipse(keyPos, 5, 5);
+                    painter.setBrush(Qt::black);
+                    painter.drawEllipse(keyPos, 4, 4);
+                }
+                else
+                    painter.drawEllipse(keyPos, 4, 4);
+            }
+        }
+        else
         {
             const QPointF keyPos(
                         QPointF(refocusLineStart) +
-                        QPointF(refocusLineEnd - refocusLineStart) * (float(i)/float(refocusKeyCount-1))
+                        QPointF(refocusLineEnd - refocusLineStart) * (float(refocusKeySelected)/float(refocusKeyCount-1))
                         );
-            painter.setBrush(Qt::white);
-            if (i == refocusKeySelected)
-            {
-                painter.drawEllipse(keyPos, 5, 5);
-                painter.setBrush(Qt::black);
-                painter.drawEllipse(keyPos, 4, 4);
-            }
-            else
-                painter.drawEllipse(keyPos, 4, 4);
+            painter.setBrush(Qt::NoBrush);
+            painter.setPen(QPen(Qt::white,2));
+            painter.drawEllipse(keyPos, 20, 20);
+            painter.setPen(QPen(Qt::white, 1, Qt::DotLine));
+            painter.drawLine(keyPos.x()-20, keyPos.y(), keyPos.x()-5, keyPos.y());
+            painter.drawLine(keyPos.x()+5, keyPos.y(), keyPos.x()+20, keyPos.y());
+            painter.drawLine(keyPos.x(), keyPos.y()-20, keyPos.x(), keyPos.y()-5);
+            painter.drawLine(keyPos.x(), keyPos.y()+5, keyPos.x(), keyPos.y()+20);
         }
 
         // and on the timeline
@@ -366,6 +386,7 @@ void FocusEditorWidget::keyPressEvent(QKeyEvent *event)
     case Qt::Key_Save: saveRefocusKeys(); break;
     case Qt::Key_L: loadRefocusKeys(); break;
     case Qt::Key_E: showExportDialog(); break;
+    case Qt::Key_H: toggleLine(); break;
     default: break;
     }
 }
@@ -517,8 +538,15 @@ QImage FocusEditorWidget::getInterpolatedFrame(const float& frameApproximation) 
     return firstFrame;
 }
 
+void FocusEditorWidget::toggleLine()
+{
+    bShowLine = !bShowLine;
+    update();
+}
+
 void FocusEditorWidget::exportVideo()
 {
+    bPaused = true;
     const bool bBestDuration(exporter->durationCheck->isChecked());
     const int duration(bBestDuration ? -1 : exporter->durationSpin->value());
     const int distanceMethod(exporter->distanceCombo->currentIndex());
