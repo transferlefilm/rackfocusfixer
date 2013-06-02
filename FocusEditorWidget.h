@@ -54,6 +54,7 @@ namespace RackFocusFixer
         void mouseReleaseEvent(QMouseEvent *event);
 
     private:
+		void resizeRefocusKeys();
         RefocusKeys getFullKeypointList() const;
         unsigned getBestDuration() const;
         FrameList getLinearFrames(const int duration, const RefocusKeys& keys) const;

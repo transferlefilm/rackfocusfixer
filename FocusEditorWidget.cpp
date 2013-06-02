@@ -421,6 +421,7 @@ void FocusEditorWidget::keyPressEvent(QKeyEvent *event)
     case Qt::Key_L: loadRefocusKeys(); break;
     case Qt::Key_E: showExportDialog(); break;
     case Qt::Key_H: toggleLine(); break;
+    case Qt::Key_R: resizeRefocusKeys(); break;
     default: break;
     }
 }
@@ -462,15 +463,7 @@ void FocusEditorWidget::mousePressEvent(QMouseEvent *event)
         case RSS_START:
             refocusLineEnd = event->pos();
             refocusSetState = RSS_COMPLETE;
-            refocusKeyCount = QInputDialog::getInt(
-                        this,
-                        tr("Input keypoint count"),
-                        tr("Choose the number of refocus keypoints"),
-                        refocusKeyCount, 2, 1000
-                        );
-            refocusKeySelected = std::min(refocusKeySelected, refocusKeyCount-1);
-            refocusKeys = RefocusKeys(refocusKeyCount,-1);
-            update();
+            resizeRefocusKeys();
             break;
         default: break;
         };
@@ -480,6 +473,19 @@ void FocusEditorWidget::mousePressEvent(QMouseEvent *event)
 void FocusEditorWidget::mouseReleaseEvent(QMouseEvent *event)
 {
 
+}
+
+void FocusEditorWidget::resizeRefocusKeys()
+{
+	refocusKeyCount = QInputDialog::getInt(
+				this,
+				tr("Input keypoint count"),
+				tr("Choose the number of refocus keypoints"),
+				refocusKeyCount, 2, 1000
+				);
+	refocusKeySelected = std::min(refocusKeySelected, refocusKeyCount-1);
+	refocusKeys.resize(refocusKeyCount,-1);
+	update();
 }
 
 RefocusKeys FocusEditorWidget::getFullKeypointList() const
