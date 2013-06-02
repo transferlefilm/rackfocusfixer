@@ -98,6 +98,7 @@ void FocusEditorWidget::loadFrames(const QString& prefix, const int digits, cons
         }
         // store in frame list
         frames.push_back(pixmap);
+        frameNames.push_back(fileName);
         bFramesHaveAlpha = bFramesHaveAlpha || pixmap.hasAlpha();
         const unsigned percentageLoad((100*frames.size())/filesCount);
 
@@ -485,10 +486,12 @@ FrameList FocusEditorWidget::getRampFrames(int easeMethod, int duration, Refocus
     return getLinearFrames(duration, keys);
 }
 
-QImage FocusEditorWidget::GetInterpolatedFrame(float frameApproximation)
+QImage FocusEditorWidget::getInterpolatedFrame(float frameApproximation) const
 {
     unsigned index = int(frameApproximation);
-    return frames[index < frames.size() ? index : frames.size()-1].toImage();
+    index = index < frames.size() ? index : frames.size()-1;
+    return QImage(frameNames[index]);
+    //return frames[index].toImage();
 }
 
 } // RackFocusFixer
