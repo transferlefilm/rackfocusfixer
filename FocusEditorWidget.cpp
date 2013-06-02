@@ -253,14 +253,19 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
     painter.drawLine(0, 0, w, 0);
     painter.fillRect(QRect(percentage >= 1 ? w-1 : w*percentage, 0, 2, timelineHeight), Qt::white);
     const int textHeight(fontMetrics.height());
-    const QString text(QString("%1").arg(frameIndex));
-    const int textWidth(fontMetrics.width(text));
-    if (w*percentage < textWidth+3)
-        painter.drawText(w*percentage+3, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignLeft, text);
-    else
-        painter.drawText(w*percentage-101, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignRight, text);
-    painter.drawText(1, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignLeft, QString("0"));
-    painter.drawText(w-100, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignRight, QString("%1").arg(frames.size()));
+    // scope for local variables for text
+    {
+		const QString text(QString("%1").arg(frameIndex));
+		const int textWidth(fontMetrics.width(text));
+		if (w*percentage < textWidth*2+3)
+			painter.drawText(w*percentage+3, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignLeft, text);
+		else
+			painter.drawText(w*percentage-101, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignRight, text);
+		painter.setPen(Qt::gray);
+		painter.drawText(1, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignLeft, QString("0"));
+		painter.drawText(w-100, timelineHeight-textHeight-2, 100, textHeight, Qt::AlignRight, QString("%1").arg(frames.size()));
+		painter.setPen(Qt::white);
+	}
 
     // draw the refocus line and points
     if (refocusSetState == RSS_COMPLETE)
@@ -311,9 +316,16 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
             const int keyFrame(interpolatedKeys[i]);
             const double percentage(float(keyFrame)/float(frames.size()-1));
             const QPointF keyPos(percentage >= 1 ? w-1 : percentage*w, timelineHeight/2);
+            const QString text(QString("%1").arg(i+1));
+			const int textWidth(fontMetrics.width(text));
             painter.setBrush(Qt::NoBrush);
             painter.setPen(refocusKeys[i]==-1 ? QPen(Qt::white, 1, Qt::DotLine) : QPen(Qt::white));
-            painter.drawText(keyPos.x()-10, keyPos.y()-6-textHeight, 20, textHeight, Qt::AlignHCenter, QString("%1").arg(i+1));
+            if (i == 0)
+				painter.drawText(keyPos.x(), keyPos.y()-6-textHeight, textWidth, textHeight, Qt::AlignLeft, text);
+			else if (i == refocusKeys.size()-1)
+				painter.drawText(keyPos.x()-textWidth, keyPos.y()-6-textHeight, textWidth, textHeight, Qt::AlignRight, text);
+			else
+				painter.drawText(keyPos.x()-textWidth/2, keyPos.y()-6-textHeight, textWidth, textHeight, Qt::AlignHCenter, text);
             if (i == refocusKeySelected)
             {
                 painter.setBrush(Qt::white);
