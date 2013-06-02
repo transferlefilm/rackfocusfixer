@@ -43,6 +43,7 @@ namespace RackFocusFixer
         void setRefocusKeyFrame();
         void resetRefocusKeyFrame();
         QImage getInterpolatedFrame(const float &frameApproximation) const;
+        void toggleLine();
         
 		void paintEvent(QPaintEvent * event);
         void timerEvent(QTimerEvent *event);
@@ -84,6 +85,7 @@ namespace RackFocusFixer
         RefocusKeys refocusKeys;
 		
         bool bPaused;
+        bool bShowLine;
         Ui_ExportDialog *exporter;
         QDialog *exportDialog;
 	};
