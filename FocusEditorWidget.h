@@ -14,6 +14,10 @@ class Ui_ExportDialog;
 
 namespace RackFocusFixer
 {
+typedef QPixmap Frame;
+typedef QList<Frame> Frames;
+typedef std::vector<int> RefocusKeys;
+
 	class FocusEditorWidget: public QWidget
 	{
 		Q_OBJECT
@@ -36,6 +40,7 @@ namespace RackFocusFixer
         void prevRefocusKey();
         void setRefocusKeyFrame();
         void resetRefocusKeyFrame();
+        QImage GetInterpolatedFrame(float frameApproximation);
         
 		void paintEvent(QPaintEvent * event);
         void timerEvent(QTimerEvent *event);
@@ -52,9 +57,6 @@ namespace RackFocusFixer
         static const unsigned timelineHeight = 50;
 
 	protected:
-		typedef QPixmap Frame;
-		typedef QList<Frame> Frames;
-        typedef std::vector<int> RefocusKeys;
 		
         QString prefix;
 		Frames frames;
