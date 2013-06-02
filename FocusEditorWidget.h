@@ -30,6 +30,7 @@ namespace RackFocusFixer
         void prevFrameBlock();
         void nextRefocusKey();
         void prevRefocusKey();
+        void setRefocusKeyFrame();
         
 		void paintEvent(QPaintEvent * event);
         void timerEvent(QTimerEvent *event);
@@ -42,6 +43,7 @@ namespace RackFocusFixer
 	protected:
 		typedef QPixmap Frame;
 		typedef QList<Frame> Frames;
+        typedef std::vector<int> RefocusKeys;
 		
 		Frames frames;
 		unsigned frameIndex;
@@ -57,6 +59,7 @@ namespace RackFocusFixer
 			RSS_START,
 			RSS_COMPLETE
 		} refocusSetState;
+        RefocusKeys refocusKeys;
 		
         bool bPaused;
 	};
