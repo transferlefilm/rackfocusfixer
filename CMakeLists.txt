@@ -11,9 +11,10 @@ set(QT_USE_QTMAIN ON)
 include(${QT_USE_FILE})
 
 set(SRCS FocusEditorWidget.cpp main.cpp)
+qt4_wrap_ui(UIS exportDialog.ui)
 qt4_wrap_cpp(MOCS FocusEditorWidget.h)
 
-add_executable(rff WIN32 ${SRCS} ${MOCS})
+add_executable(rff WIN32 ${SRCS} ${MOCS} ${UIS})
 
 target_link_libraries(rff ${QT_LIBRARIES})
 

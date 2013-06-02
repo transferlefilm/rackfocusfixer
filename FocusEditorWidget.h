@@ -10,6 +10,7 @@
 #include <QString>
 
 class QPaintEvent;
+class ExportDialog;
 
 namespace RackFocusFixer
 {
@@ -24,6 +25,7 @@ namespace RackFocusFixer
         int frameCount() const;
         void saveRefocusKeys();
         void loadRefocusKeys();
+        void showExportDialog();
 
 	protected:
 		void nextFrame();
@@ -42,6 +44,9 @@ namespace RackFocusFixer
         void mouseDoubleClickEvent(QMouseEvent *event);
         void mousePressEvent(QMouseEvent *event);
         void mouseReleaseEvent(QMouseEvent *event);
+
+    public slots:
+        void exportVideo();
 
 	protected:
 		typedef QPixmap Frame;
@@ -66,6 +71,7 @@ namespace RackFocusFixer
         RefocusKeys refocusKeys;
 		
         bool bPaused;
+        ExportDialog *exportDialog;
 	};
 } // RackFocusFixer
 

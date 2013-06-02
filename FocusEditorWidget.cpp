@@ -10,6 +10,7 @@
 #include <QEvent>
 #include <QCoreApplication>
 #include <QInputDialog>
+#include "ui_exportDialog.h"
 
 namespace RackFocusFixer
 {
@@ -408,4 +409,10 @@ void FocusEditorWidget::mouseReleaseEvent(QMouseEvent *event)
 
 }
 
+void FocusEditorWidget::exportVideo()
+{
+    qDebug() << "exporting!";
+}
+
 } // RackFocusFixer
+
