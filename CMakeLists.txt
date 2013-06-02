@@ -20,3 +20,5 @@ add_executable(rff WIN32 ${SRCS} ${MOCS} ${UIS})
 target_link_libraries(rff ${QT_LIBRARIES})
 
 install(TARGETS rff RUNTIME DESTINATION bin LIBRARY DESTINATION bin)
+
+add_subdirectory(tests)

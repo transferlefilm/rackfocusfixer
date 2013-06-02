@@ -10,6 +10,7 @@
 #include <QEvent>
 #include <QCoreApplication>
 #include <QInputDialog>
+#include <stdint.h>
 #include "ui_exportDialog.h"
 
 namespace RackFocusFixer
@@ -510,8 +511,15 @@ QImage FocusEditorWidget::getInterpolatedFrame(const float& frameApproximation) 
 	const int alpha2(255.f*dt);
 	// set alpha on image 2
 	QPainter p2(&secondFrame);
-	p2.setCompositionMode(QPainter::CompositionMode_DestinationIn);
-	p2.fillRect(secondFrame.rect(), QColor(0, 0, 0, (255-alpha2)));
+	for (int y=0; y<secondFrame.height(); ++y)
+	{
+		uint32_t* ptr(reinterpret_cast<uint32_t*>(secondFrame.scanLine(y)));
+		for (int x=0; x<secondFrame.width(); ++x)
+		{
+			uint32_t v(*ptr);
+			*ptr++ = (v & 0xFFFFFF) | (alpha2 << 24);
+		}
+	}
 	p2.end();
 	// paint image 2 on image 1
 	QPainter p1(&firstFrame);
