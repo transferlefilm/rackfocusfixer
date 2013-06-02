@@ -10,7 +10,7 @@
 #include <QString>
 
 class QPaintEvent;
-class ExportDialog;
+class Ui_ExportDialog;
 
 namespace RackFocusFixer
 {
@@ -71,7 +71,8 @@ namespace RackFocusFixer
         RefocusKeys refocusKeys;
 		
         bool bPaused;
-        ExportDialog *exportDialog;
+        Ui_ExportDialog *exporter;
+        QDialog *exportDialog;
 	};
 } // RackFocusFixer
 

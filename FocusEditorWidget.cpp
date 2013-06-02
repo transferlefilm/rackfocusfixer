@@ -23,6 +23,9 @@ FocusEditorWidget::FocusEditorWidget():
     bPaused(false)
 {
     setAttribute(Qt::WA_OpaquePaintEvent);
+    exporter = new Ui_ExportDialog();
+    exporter->setupUi(exportDialog = new QDialog());
+    connect(exporter->exportButton, SIGNAL(clicked()), this, SLOT(exportVideo()));
 }
 
 void FocusEditorWidget::loadFramesFolder()
@@ -149,6 +152,11 @@ void FocusEditorWidget::loadRefocusKeys()
     }
     refocusSetState = RSS_COMPLETE;
     update();
+}
+
+void FocusEditorWidget::showExportDialog()
+{
+    exportDialog->show();
 }
 
 void FocusEditorWidget::nextFrame()
@@ -363,6 +371,7 @@ void FocusEditorWidget::keyPressEvent(QKeyEvent *event)
     case Qt::Key_S:
     case Qt::Key_Save: saveRefocusKeys(); break;
     case Qt::Key_L: loadRefocusKeys(); break;
+    case Qt::Key_E: showExportDialog(); break;
     default: break;
     }
 }
@@ -411,6 +420,7 @@ void FocusEditorWidget::mouseReleaseEvent(QMouseEvent *event)
 
 void FocusEditorWidget::exportVideo()
 {
+
     qDebug() << "exporting!";
 }
 
