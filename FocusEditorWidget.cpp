@@ -322,6 +322,32 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
             painter.drawLine(keyPos.x()+5, keyPos.y(), keyPos.x()+20, keyPos.y());
             painter.drawLine(keyPos.x(), keyPos.y()-20, keyPos.x(), keyPos.y()-5);
             painter.drawLine(keyPos.x(), keyPos.y()+5, keyPos.x(), keyPos.y()+20);
+
+            // we add the zoom
+            int zoomX(keyPos.x()-32);
+            int zoomY(keyPos.y()-32);
+            const int zoomW(64);
+            const int zoomH(64);
+            zoomX = max(0, zoomX);
+            zoomY = max(0, zoomY);
+            if(zoomX + zoomW > frames[frameIndex].width()) zoomX = frames[frameIndex].width() - zoomW - 1;
+            if(zoomY + zoomH > frames[frameIndex].height()) zoomY = frames[frameIndex].height() - zoomH - 1;
+            const int bigZoomW(zoomW*4);
+            const int bigZoomH(zoomH*4);
+            int bigX(0);
+            int bigY(height()-bigZoomH-1);
+            if(keyPos.x() < bigZoomW*1.5) bigX = width() - bigZoomW - 1;
+
+            Frame zoomPix = frames[frameIndex].copy(zoomX, zoomY, zoomW, zoomH);
+            painter.drawPixmap(bigX, bigY, bigZoomW, bigZoomH, zoomPix.scaled(bigZoomW, bigZoomH));
+            painter.drawLine(bigX + bigZoomW/2+10, bigY + bigZoomH/2,
+                             bigX + bigZoomW/2+40, bigY + bigZoomH/2);
+            painter.drawLine(bigX + bigZoomW/2-10, bigY + bigZoomH/2,
+                             bigX + bigZoomW/2-40, bigY + bigZoomH/2);
+            painter.drawLine(bigX + bigZoomW/2, bigY + bigZoomH/2+10,
+                             bigX + bigZoomW/2, bigY + bigZoomH/2+40);
+            painter.drawLine(bigX + bigZoomW/2, bigY + bigZoomH/2-10,
+                             bigX + bigZoomW/2, bigY + bigZoomH/2-40);
         }
 
         // and on the timeline
