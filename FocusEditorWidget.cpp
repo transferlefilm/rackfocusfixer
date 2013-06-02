@@ -10,6 +10,7 @@
 #include <QEvent>
 #include <QCoreApplication>
 #include <QInputDialog>
+#include <stdint.h>
 #include "ui_exportDialog.h"
 
 namespace RackFocusFixer
@@ -549,25 +550,32 @@ QImage FocusEditorWidget::getInterpolatedFrame(const float& frameApproximation) 
     const unsigned index = unsigned(frameApproximation);
     // handle corner cases
     if (index >= frameNames.size())
-        return QImage(frameNames.last());
-    if ((float(index) == frameApproximation) ||
-            (index + 1 >= frameNames.size()))
-        return QImage(frameNames[index]);
-    // load two frames
-    QImage firstFrame(QImage(frameNames[index]).convertToFormat(QImage::Format_ARGB32));
-    QImage secondFrame(QImage(frameNames[index+1]).convertToFormat(QImage::Format_ARGB32));
-    // interpolation
-    const float dt(frameApproximation-float(index));
-    const int alpha2(255.f*dt);
-    // set alpha on image 2
-    QPainter p2(&secondFrame);
-    p2.setCompositionMode(QPainter::CompositionMode_DestinationIn);
-    p2.fillRect(secondFrame.rect(), QColor(0, 0, 0, (255-alpha2)));
-    p2.end();
-    // paint image 2 on image 1
-    QPainter p1(&firstFrame);
-    p1.drawImage(firstFrame.rect(), secondFrame, secondFrame.rect());
-    p1.end();
+		return QImage(frameNames.last());
+	if ((float(index) == frameApproximation) ||
+		(index + 1 >= frameNames.size()))
+		return QImage(frameNames[index]);
+	// load two frames
+	QImage firstFrame(QImage(frameNames[index]).convertToFormat(QImage::Format_ARGB32));
+	QImage secondFrame(QImage(frameNames[index+1]).convertToFormat(QImage::Format_ARGB32));
+	// interpolation
+	const float dt(frameApproximation-float(index));
+	const int alpha2(255.f*dt);
+	// set alpha on image 2
+	QPainter p2(&secondFrame);
+	for (int y=0; y<secondFrame.height(); ++y)
+	{
+		uint32_t* ptr(reinterpret_cast<uint32_t*>(secondFrame.scanLine(y)));
+		for (int x=0; x<secondFrame.width(); ++x)
+		{
+			uint32_t v(*ptr);
+			*ptr++ = (v & 0xFFFFFF) | (alpha2 << 24);
+		}
+	}
+	p2.end();
+	// paint image 2 on image 1
+	QPainter p1(&firstFrame);
+	p1.drawImage(firstFrame.rect(), secondFrame, secondFrame.rect());
+	p1.end();
     return firstFrame;
 }
 
