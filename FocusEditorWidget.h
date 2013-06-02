@@ -54,6 +54,7 @@ namespace RackFocusFixer
         void mouseReleaseEvent(QMouseEvent *event);
 
     private:
+		void resizeRefocusKeys();
         RefocusKeys getFullKeypointList() const;
         unsigned getBestDuration() const;
         float transformPercentage(const float percentage, const int transformationMethod) const;
