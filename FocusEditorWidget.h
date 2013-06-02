@@ -40,7 +40,7 @@ typedef std::vector<int> RefocusKeys;
         void prevRefocusKey();
         void setRefocusKeyFrame();
         void resetRefocusKeyFrame();
-        QImage GetInterpolatedFrame(float frameApproximation);
+        QImage getInterpolatedFrame(float frameApproximation) const;
         
 		void paintEvent(QPaintEvent * event);
         void timerEvent(QTimerEvent *event);

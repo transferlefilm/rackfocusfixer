@@ -451,10 +451,12 @@ void FocusEditorWidget::exportVideo()
     qDebug() << "exporting!";
 }
 
-QImage FocusEditorWidget::GetInterpolatedFrame(float frameApproximation)
+QImage FocusEditorWidget::getInterpolatedFrame(float frameApproximation) const
 {
     unsigned index = int(frameApproximation);
-    return frames[index < frames.size() ? index : frames.size()-1].toImage();
+    index = index < frames.size() ? index : frames.size()-1;
+    return QImage(frameNames[index]);
+    //return frames[index].toImage();
 }
 
 } // RackFocusFixer
