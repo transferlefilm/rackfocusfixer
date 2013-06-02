@@ -11,6 +11,7 @@
 #include <QCoreApplication>
 #include <QInputDialog>
 #include <stdint.h>
+#include <cmath>
 #include "ui_exportDialog.h"
 
 namespace RackFocusFixer
@@ -513,13 +514,28 @@ unsigned FocusEditorWidget::getBestDuration() const
     return frames.size();
 }
 
-FrameList FocusEditorWidget::getLinearFrames(const int duration, const RefocusKeys& keys) const
+float FocusEditorWidget::transformPercentage(const float percentage, const int transformationMethod) const
+{
+    switch (transformationMethod)
+    {
+    default:
+    case 0:
+        return percentage;
+    case 1:
+        return percentage*percentage;
+    case 2:
+        return sqrt(percentage);
+    }
+}
+
+FrameList FocusEditorWidget::getLinearFrames(const int duration, const RefocusKeys& keys, const int distanceType) const
 {
     FrameList list(duration==-1 ? getBestDuration() : duration);
     //TODO: compute the interpolation (for now it's completely bogus!)
     for (unsigned i=0; i<list.size(); i++)
     {
         float percentage = float(i) / float(list.size()-1);
+        percentage = transformPercentage(percentage, distanceType);
         int keypointPre = int(percentage * float(keys.size()-1));
         if (percentage*float(keys.size()-1) - float(keypointPre) < 1e-8) // we are on a keypoint, or sufficiently close
         {
@@ -538,11 +554,11 @@ FrameList FocusEditorWidget::getLinearFrames(const int duration, const RefocusKe
     return list;
 }
 
-FrameList FocusEditorWidget::getRampFrames(const int easeMethod, const int duration, const RefocusKeys& keys) const
+FrameList FocusEditorWidget::getRampFrames(const int easeMethod, const int duration, const RefocusKeys& keys, const int distanceType) const
 {
     // easeMethod: 0: ease-in + ease-out, 1: ease-in, 2: ease-out
     //TODO: compute the ease-in ease-out
-    return getLinearFrames(duration, keys);
+    return getLinearFrames(duration, keys, distanceType);
 }
 
 QImage FocusEditorWidget::getInterpolatedFrame(const float& frameApproximation) const
@@ -590,16 +606,16 @@ void FocusEditorWidget::exportVideo()
     bPaused = true;
     const bool bBestDuration(exporter->durationCheck->isChecked());
     const int duration(bBestDuration ? -1 : exporter->durationSpin->value());
-    const int distanceMethod(exporter->distanceCombo->currentIndex());
+    const int distanceType(exporter->distanceCombo->currentIndex());
     const int rampMethod(exporter->rampCombo->currentIndex());
     FrameList frameList;
     switch(rampMethod)
     {
-    case 0: frameList = getLinearFrames(duration, getFullKeypointList()); break;
+    case 0: frameList = getLinearFrames(duration, getFullKeypointList(), distanceType); break;
     case 1:
     case 2:
     case 3:
-        frameList = getRampFrames(rampMethod-1, duration, getFullKeypointList()); break;
+        frameList = getRampFrames(rampMethod-1, duration, getFullKeypointList(), distanceType); break;
     }
 
     QProgressDialog progress(tr("Exporting Output Frames..."), tr("Stop Exporting"), 0, frameList.size(), this);

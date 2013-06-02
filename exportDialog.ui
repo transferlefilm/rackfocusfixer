@@ -33,7 +33,12 @@
         </item>
         <item>
          <property name="text">
-          <string>Exponential</string>
+          <string>Far to Close</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Close to Far</string>
          </property>
         </item>
        </widget>
