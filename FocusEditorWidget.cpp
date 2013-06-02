@@ -231,7 +231,6 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
     if (frames.empty())
         return;
     const float percentage = float(frameIndex) / float(frames.size()-1);
-    const int timelineHeight = 50;
     const int w = width();
     const int h = height();
 
@@ -390,6 +389,12 @@ void FocusEditorWidget::keyPressEvent(QKeyEvent *event)
 
 void FocusEditorWidget::mouseMoveEvent(QMouseEvent *event)
 {
+    if (event->buttons() == Qt::LeftButton && event->y() < timelineHeight)
+    {
+        const float percentage = float(event->x()) / float(width());
+        frameIndex = int(float(frames.size())*percentage);
+        update();
+    }
 
 }
 
@@ -400,29 +405,38 @@ void FocusEditorWidget::mouseDoubleClickEvent(QMouseEvent *event)
 
 void FocusEditorWidget::mousePressEvent(QMouseEvent *event)
 {
-    switch (refocusSetState)
+    if (event->y() < timelineHeight)
     {
-    case RSS_NONE:
-    case RSS_COMPLETE:
-        refocusLineStart = event->pos();
-        refocusSetState = RSS_START;
+        const float percentage = float(event->x()) / float(width());
+        frameIndex = int(float(frames.size())*percentage);
         update();
-        break;
-    case RSS_START:
-        refocusLineEnd = event->pos();
-        refocusSetState = RSS_COMPLETE;
-        refocusKeyCount = QInputDialog::getInt(
-                    this,
-                    tr("Input keypoint count"),
-                    tr("Choose the number of refocus keypoints"),
-                    refocusKeyCount, 2, 1000
-                    );
-        refocusKeySelected = std::min(refocusKeySelected, refocusKeyCount-1);
-        refocusKeys = RefocusKeys(refocusKeyCount,-1);
-        update();
-        break;
-    default: break;
-    };
+    }
+    else
+    {
+        switch (refocusSetState)
+        {
+        case RSS_NONE:
+        case RSS_COMPLETE:
+            refocusLineStart = event->pos();
+            refocusSetState = RSS_START;
+            update();
+            break;
+        case RSS_START:
+            refocusLineEnd = event->pos();
+            refocusSetState = RSS_COMPLETE;
+            refocusKeyCount = QInputDialog::getInt(
+                        this,
+                        tr("Input keypoint count"),
+                        tr("Choose the number of refocus keypoints"),
+                        refocusKeyCount, 2, 1000
+                        );
+            refocusKeySelected = std::min(refocusKeySelected, refocusKeyCount-1);
+            refocusKeys = RefocusKeys(refocusKeyCount,-1);
+            update();
+            break;
+        default: break;
+        };
+    }
 }
 
 void FocusEditorWidget::mouseReleaseEvent(QMouseEvent *event)

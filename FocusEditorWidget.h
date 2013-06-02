@@ -48,6 +48,9 @@ namespace RackFocusFixer
     public slots:
         void exportVideo();
 
+    private:
+        static const unsigned timelineHeight = 50;
+
 	protected:
 		typedef QPixmap Frame;
 		typedef QList<Frame> Frames;
