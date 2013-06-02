@@ -55,8 +55,8 @@ namespace RackFocusFixer
     private:
         RefocusKeys getFullKeypointList() const;
         unsigned getBestDuration() const;
-        FrameList getLinearFrames(const int& duration, const RefocusKeys& keys) const;
-        FrameList getRampFrames(const int& easeMethod, const int& duration, const RefocusKeys& keys) const;
+        FrameList getLinearFrames(const int duration, const RefocusKeys& keys) const;
+        FrameList getRampFrames(const int easeMethod, const int duration, const RefocusKeys& keys) const;
 
     public slots:
         void exportVideo();
