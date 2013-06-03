@@ -14,13 +14,13 @@
  */
 class EaseInOut
 {
+public:
     enum Method
     {
         Linear, Squareroot, Tanh, Sinusoidal, Quadratic, // you'll most likely want to use one of these
         Cubic, Quartic, Quintic, Exponential, Circular// these are there for the sake of completeness
     };
 
-public:
     /*!
      * \brief easeIn generates Ease-In values from an input percentage value
      * \param percentage input value in the interval [0, 1]
@@ -35,7 +35,7 @@ public:
         default:
         case Linear: return t;
         case Squareroot: return 1 - sqrt(1-t);
-        case Tanh: return 1 - tanh(t*4);
+        case Tanh: return 1 - tanh((1-t)*4);
         case Sinusoidal: return  -cosf(t * (M_PI*0.5)) + 1;
         case Quadratic: return t*t;
         case Cubic: return t*t*t;

@@ -43,6 +43,7 @@ namespace RackFocusFixer
         void prevRefocusKey();
         void setRefocusKeyFrame();
         void resetRefocusKeyFrame();
+        void deleteRefocusKey();
         QImage getInterpolatedFrame(const float &frameApproximation) const;
         void toggleLine();
         
@@ -54,12 +55,14 @@ namespace RackFocusFixer
         void mouseDoubleClickEvent(QMouseEvent *event);
         void mousePressEvent(QMouseEvent *event);
         void mouseReleaseEvent(QMouseEvent *event);
+        void wheelEvent(QWheelEvent *event);
 
     private:
         void resizeRefocusKeys();
         RefocusKeys getFullKeypointList() const;
         QPointF getClosestPointOnLine(const QPointF &point) const;
         RefocusPoints generateRefocusPoints();
+        void sortRefocusKeys();
         unsigned getBestDuration() const;
         float transformPercentage(const float percentage, const int transformationMethod) const;
         FrameList getLinearFrames(const int duration, const RefocusKeys& keys, const int distanceType) const;

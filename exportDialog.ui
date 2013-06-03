@@ -33,12 +33,17 @@
         </item>
         <item>
          <property name="text">
-          <string>Far to Close</string>
+          <string>Exponential</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Close to Far</string>
+          <string>Squareroot</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Tanh</string>
          </property>
         </item>
        </widget>
@@ -89,7 +94,7 @@
          <number>25</number>
         </property>
         <property name="value">
-         <number>400</number>
+         <number>360</number>
         </property>
        </widget>
       </item>

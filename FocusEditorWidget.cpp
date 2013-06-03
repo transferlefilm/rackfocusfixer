@@ -195,6 +195,7 @@ void FocusEditorWidget::loadRefocusKeys()
         }
     }
     refocusSetState = RSS_COMPLETE;
+    sortRefocusKeys();
     update();
 }
 
@@ -270,6 +271,15 @@ void FocusEditorWidget::resetRefocusKeyFrame()
     refocusKeys[refocusKeySelected] = -1;
 }
 
+void FocusEditorWidget::deleteRefocusKey()
+{
+    refocusKeys.erase(refocusKeys.begin() + refocusKeySelected);
+    refocusPoints.erase(refocusPoints.begin() + refocusKeySelected);
+    if (refocusKeySelected >= refocusKeys.size()) refocusKeySelected = refocusKeys.size()-1;
+    refocusKeyCount--;
+    update();
+}
+
 void FocusEditorWidget::paintEvent(QPaintEvent * event)
 {
     if (frames.empty())
@@ -341,12 +351,11 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
                     painter.setBrush(Qt::white);
                     if (i == refocusKeySelected)
                     {
+                        painter.setBrush(Qt::NoBrush);
                         painter.drawEllipse(keyPos, 5, 5);
-                        painter.setBrush(Qt::black);
-                        painter.drawEllipse(keyPos, 4, 4);
                     }
                     else
-                        painter.drawEllipse(keyPos, 4, 4);
+                        painter.drawEllipse(keyPos, 2, 2);
                 }
             }
         }
@@ -420,13 +429,15 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
             if (i == refocusKeySelected)
             {
                 painter.setBrush(Qt::white);
-                painter.drawEllipse(keyPos, 5, 5);
+                painter.drawEllipse(keyPos, 3, 3);
                 painter.setPen(QPen(Qt::white, 0.5, Qt::DotLine));
                 painter.drawLine(keyPos-QPointF(20,0),keyPos+QPointF(20,0));
                 painter.drawLine(keyPos-QPointF(0,20),keyPos+QPointF(0,20));
             }
             else
-                painter.drawEllipse(keyPos, 4, 4);
+            {
+                painter.drawEllipse(keyPos, 2, 2);
+            }
             if (i)
             {
                 painter.setPen(QPen(Qt::white, 1, Qt::DotLine));
@@ -450,8 +461,8 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
         painter.drawEllipse(closestPoint, 5, 5);
 
         // we add the zoom
-        int zoomX(mousePos.x()-32);
-        int zoomY(mousePos.y()-32);
+        int zoomX(closestPoint.x()-32);
+        int zoomY(closestPoint.y()-32);
         const int zoomW(64);
         const int zoomH(64);
         zoomX = max(0, zoomX);
@@ -462,7 +473,7 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
         const int bigZoomH(zoomH*4);
         int bigX(0);
         int bigY(height()-bigZoomH-1);
-        if(mousePos.x() < bigZoomW*1.5) bigX = width() - bigZoomW - 1;
+        if(closestPoint.x() < bigZoomW*1.5) bigX = width() - bigZoomW - 1;
 
         Frame zoomPix = frames[frameIndex].copy(zoomX, zoomY, zoomW, zoomH);
         painter.drawPixmap(bigX, bigY, bigZoomW, bigZoomH, zoomPix.scaled(bigZoomW, bigZoomH));
@@ -488,7 +499,7 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
     painter.setBrush(Qt::white);
     //for (int easeType=0; easeType < 3; easeType++)
     {
-        int easeType(2);
+        int easeType(1);
         for (int method=0; method < 10; method++)
         {
             QPointF start(50,100+30*method);
@@ -497,9 +508,10 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
             QPointF oldPoint;
             QString methodString(methodList.at(method) + "-" + easeList.at(easeType));
             painter.drawText(start - QPointF(0,7), methodString);
-            for (int i=0; i <= 40; i++)
+            int steps = 40;
+            for (int i=0; i <= steps; i++)
             {
-                float percentage(float(i)/40.f);
+                float percentage(float(i)/float(steps));
                 switch (easeType)
                 {
                     case 0: percentage = EaseInOut::easeIn(percentage, method); break;
@@ -536,8 +548,9 @@ void FocusEditorWidget::keyPressEvent(QKeyEvent *event)
     case Qt::Key_Down: prevRefocusKey(); break;
     case Qt::Key_Enter:
     case Qt::Key_Return: setRefocusKeyFrame(); break;
-    case Qt::Key_Backspace:
-    case Qt::Key_Delete: resetRefocusKeyFrame(); break;
+    case Qt::Key_Delete:
+    case Qt::Key_Backspace: resetRefocusKeyFrame(); break;
+    case Qt::Key_X: deleteRefocusKey(); break;
     case Qt::Key_S:
     case Qt::Key_Save: saveRefocusKeys(); break;
     case Qt::Key_L: loadRefocusKeys(); break;
@@ -646,15 +659,46 @@ void FocusEditorWidget::mouseReleaseEvent(QMouseEvent *event)
         const int index = int(indexRatio);
         qDebug() << "index" << index << "indexRatio" << indexRatio << "ratio" << ratio
                  << "distance" << indexRatio - index << "sumlength" << sumLength << lineLength;
-        if(indexRatio-index > 1e-3 && sumLength < lineLength && index < refocusKeyCount)
+        if (indexRatio-index > 1e-3 && sumLength < lineLength && index < refocusKeyCount)
         {
             refocusKeys.insert(refocusKeys.begin() + index, frameIndex);
             refocusPoints.insert(refocusPoints.begin() + index, closestPoint);
             refocusKeyCount++;
             refocusKeySelected = index;
+            sortRefocusKeys();
+            // we resort the points
+            vector< pair<float,int> > distances;
+            for (int i=0; i< refocusPoints.size(); i++)
+            {
+                const QPointF segment(refocusPoints[i]-refocusLineStart);
+                const float segmentLength(sqrtf(segment.x()*segment.x() + segment.y()*segment.y()));
+                const float percentage = segmentLength / lineLength;
+                distances.push_back(make_pair(percentage,i));
+            }
+            sort(distances.begin(), distances.end());
+            RefocusPoints newPoints(refocusPoints.size());
+            RefocusKeys newKeys(refocusKeys.size());
+            int newSelectedIndex = refocusKeySelected;
+            for (int i=0; i< refocusPoints.size(); i++)
+            {
+                newPoints[i] = refocusPoints[distances[i].second];
+                newKeys[i] = refocusKeys[distances[i].second];
+                if (distances[i].second == refocusKeySelected) newSelectedIndex = i;
+            }
+            refocusPoints = newPoints;
+            refocusKeys = newKeys;
+            refocusKeySelected = newSelectedIndex;
         }
         update();
     }
+}
+
+void FocusEditorWidget::wheelEvent(QWheelEvent *event)
+{
+    if (event->delta()>0) frameIndex = (frameIndex+1)%frames.size();
+    else if (event->delta()<0) frameIndex = (frameIndex-1 + frames.size())%frames.size();
+    else return;
+    update();
 }
 
 void FocusEditorWidget::resizeRefocusKeys()
@@ -722,6 +766,37 @@ RefocusPoints FocusEditorWidget::generateRefocusPoints()
     return points;
 }
 
+void FocusEditorWidget::sortRefocusKeys()
+{
+    // we resort the points
+    const QPointF lineVector(refocusLineStart-refocusLineEnd);
+    const float lineLength(sqrtf(lineVector.x()*lineVector.x() + lineVector.y()*lineVector.y()));
+
+    vector< pair<float,int> > distances;
+    for (int i=0; i< refocusPoints.size(); i++)
+    {
+        const QPointF segment(refocusPoints[i]-refocusLineStart);
+        const float segmentLength(sqrtf(segment.x()*segment.x() + segment.y()*segment.y()));
+        const float percentage = segmentLength / lineLength;
+        distances.push_back(make_pair(percentage,i));
+    }
+    sort(distances.begin(), distances.end());
+
+    RefocusPoints newPoints(refocusPoints.size());
+    RefocusKeys newKeys(refocusKeys.size());
+    int newSelectedIndex = refocusKeySelected;
+    for (int i=0; i< refocusPoints.size(); i++)
+    {
+        newPoints[i] = refocusPoints[distances[i].second];
+        newKeys[i] = refocusKeys[distances[i].second];
+        if (distances[i].second == refocusKeySelected) newSelectedIndex = i;
+    }
+    refocusPoints = newPoints;
+    refocusKeys = newKeys;
+    refocusKeySelected = newSelectedIndex;
+
+}
+
 unsigned FocusEditorWidget::getBestDuration() const
 {
     //TODO: compute the frames size that requires the least interpolations
@@ -731,23 +806,39 @@ unsigned FocusEditorWidget::getBestDuration() const
 FrameList FocusEditorWidget::getLinearFrames(const int duration, const RefocusKeys& keys, const int distanceType) const
 {
     FrameList list(duration==-1 ? getBestDuration() : duration);
-    //TODO: compute the interpolation (for now it's completely bogus!)
+
+    vector< float > keyPercentages;
+    const QPointF lineVector(refocusLineStart-refocusLineEnd);
+    const float lineLength(sqrtf(lineVector.x()*lineVector.x() + lineVector.y()*lineVector.y()));
+    for (int j=0; j< refocusPoints.size(); j++)
+    {
+        const QPointF segment(refocusPoints[j]-refocusLineStart);
+        const float segmentLength(sqrtf(segment.x()*segment.x() + segment.y()*segment.y()));
+        const float keyPercentage = segmentLength / lineLength;
+        keyPercentages.push_back(keyPercentage);
+        qDebug() << "percentage" << j << keyPercentage;
+    }
+
     for (unsigned i=0; i<list.size(); i++)
     {
         float percentage = float(i) / float(list.size()-1);
-        percentage = EaseInOut::easeInOut(percentage, distanceType);
-        int keypointPre = int(percentage * float(keys.size()-1));
-        if (percentage*float(keys.size()-1) - float(keypointPre) < 1e-8) // we are on a keypoint, or sufficiently close
+        percentage = EaseInOut::easeIn(percentage, distanceType);
+        int keypointPre = 0;
+        while(keypointPre < keyPercentages.size() && percentage >= keyPercentages[keypointPre]) keypointPre++;
+        keypointPre--;
+
+        if (percentage - float(keyPercentages[keypointPre]) < 1e-5) // we are on a keypoint, or sufficiently close
         {
             list[i] = keys[keypointPre];
+            qDebug() << "i" << i << "percentage" << percentage << "keypointPre" << keypointPre << "frame" << list[i];
         }
         else // we interpolate between the two closest keypoints
         {
             int framePre = keys[keypointPre];
             int framePost = keys[keypointPre+1];
-            float remainder = percentage*float(keys.size()-1) - float(keypointPre);
+            float remainder = (percentage - keyPercentages[keypointPre])/(keyPercentages[keypointPre+1]-keyPercentages[keypointPre]);
             list[i] = framePre + (framePost-framePre)*remainder;
-            qDebug() << "i" << i << "keyframe" << framePre << "remainder" << remainder << "frame" << list[i];
+            qDebug() << "i" << i << "percentage" << percentage << "keypointPre" << keypointPre << "keyframe" << framePre << "remainder" << remainder << "frame" << list[i];
         }
     }
     //for (unsigned i=0; i<list.size(); i++) list[i] = i*frames.size()/list.size();
@@ -807,8 +898,17 @@ void FocusEditorWidget::exportVideo()
     exportDialog->hide();
     const bool bBestDuration(exporter->durationCheck->isChecked());
     const int duration(bBestDuration ? -1 : exporter->durationSpin->value());
-    const int distanceType(exporter->distanceCombo->currentIndex());
+    int distanceType(exporter->distanceCombo->currentIndex());
     const int rampMethod(exporter->rampCombo->currentIndex());
+
+    switch(distanceType)
+    {
+    case 0: distanceType = EaseInOut::Linear; break;
+    case 1: distanceType = EaseInOut::Exponential; break;
+    case 2: distanceType = EaseInOut::Squareroot; break;
+    case 3: distanceType = EaseInOut::Tanh; break;
+    }
+
     FrameList frameList;
     switch(rampMethod)
     {
