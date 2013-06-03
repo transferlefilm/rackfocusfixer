@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <cmath>
 #include "ui_exportDialog.h"
+#include "easeInOut.h"
 
 namespace RackFocusFixer
 {
@@ -31,6 +32,7 @@ FocusEditorWidget::FocusEditorWidget():
     exporter = new Ui_ExportDialog();
     exporter->setupUi(exportDialog = new QDialog());
     connect(exporter->exportButton, SIGNAL(clicked()), this, SLOT(exportVideo()));
+    connect(exporter->cancelButton, SIGNAL(clicked()), exportDialog, SLOT(hide()));
     setCursor(Qt::CrossCursor);
 }
 
@@ -393,6 +395,47 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
     {
         painter.drawEllipse(refocusLineStart, 4, 4);
     }
+
+
+    // just testing the ease-in ease-out functions
+    /*
+    QStringList methodList;
+    methodList << "Linear" << "Squareroot" << "Tanh" << "Sinusoidal";
+    methodList << "Quadratic" << "Cubic" << "Quartic" << "Quintic";
+    methodList << "Exponential" << "Circular";
+    QStringList easeList;
+    easeList << "In" << "Out" << "InOut";
+    painter.setPen(QPen(Qt::white, 2));
+    painter.setBrush(Qt::white);
+    //for (int easeType=0; easeType < 3; easeType++)
+    {
+        int easeType(2);
+        for (int method=0; method < 10; method++)
+        {
+            QPointF start(50,100+30*method);
+            //QPointF start(50,100+30*((method-6) + easeType*3));
+            QPointF end(start + QPointF(900,0));
+            QPointF oldPoint;
+            QString methodString(methodList.at(method) + "-" + easeList.at(easeType));
+            painter.drawText(start - QPointF(0,7), methodString);
+            for (int i=0; i <= 40; i++)
+            {
+                float percentage(float(i)/40.f);
+                switch (easeType)
+                {
+                    case 0: percentage = EaseInOut::easeIn(percentage, method); break;
+                    case 1: percentage = EaseInOut::easeOut(percentage, method); break;
+                    case 2: percentage = EaseInOut::easeInOut(percentage, method); break;
+                }
+                QPointF point(start + (end-start)*percentage);
+                if (i) painter.drawLine(oldPoint, point);
+                oldPoint = point;
+                painter.drawEllipse(point, 4, 4);
+            }
+        }
+    }
+    */
+
 }
 
 void FocusEditorWidget::timerEvent(QTimerEvent *)
@@ -520,20 +563,6 @@ unsigned FocusEditorWidget::getBestDuration() const
     return frames.size();
 }
 
-float FocusEditorWidget::transformPercentage(const float percentage, const int transformationMethod) const
-{
-    switch (transformationMethod)
-    {
-    default:
-    case 0:
-        return percentage;
-    case 1:
-        return percentage*percentage;
-    case 2:
-        return sqrt(percentage);
-    }
-}
-
 FrameList FocusEditorWidget::getLinearFrames(const int duration, const RefocusKeys& keys, const int distanceType) const
 {
     FrameList list(duration==-1 ? getBestDuration() : duration);
@@ -541,7 +570,7 @@ FrameList FocusEditorWidget::getLinearFrames(const int duration, const RefocusKe
     for (unsigned i=0; i<list.size(); i++)
     {
         float percentage = float(i) / float(list.size()-1);
-        percentage = transformPercentage(percentage, distanceType);
+        percentage = EaseInOut::easeInOut(percentage, distanceType);
         int keypointPre = int(percentage * float(keys.size()-1));
         if (percentage*float(keys.size()-1) - float(keypointPre) < 1e-8) // we are on a keypoint, or sufficiently close
         {
@@ -610,6 +639,7 @@ void FocusEditorWidget::toggleLine()
 void FocusEditorWidget::exportVideo()
 {
     bPaused = true;
+    exportDialog->hide();
     const bool bBestDuration(exporter->durationCheck->isChecked());
     const int duration(bBestDuration ? -1 : exporter->durationSpin->value());
     const int distanceType(exporter->distanceCombo->currentIndex());
