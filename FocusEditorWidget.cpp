@@ -26,7 +26,8 @@ FocusEditorWidget::FocusEditorWidget():
     refocusKeySelected(0),
     refocusSetState(RSS_NONE),
     bPaused(false),
-    bShowLine(true)
+    bShowLine(true),
+    editMode(0)
 {
     setAttribute(Qt::WA_OpaquePaintEvent);
     exporter = new Ui_ExportDialog();
@@ -34,6 +35,7 @@ FocusEditorWidget::FocusEditorWidget():
     connect(exporter->exportButton, SIGNAL(clicked()), this, SLOT(exportVideo()));
     connect(exporter->cancelButton, SIGNAL(clicked()), exportDialog, SLOT(hide()));
     setCursor(Qt::CrossCursor);
+    setMouseTracking(true);
 }
 
 void FocusEditorWidget::loadFramesFolder()
@@ -131,14 +133,21 @@ void FocusEditorWidget::saveRefocusKeys()
         qDebug() << "unable to open keys file for writing";
         return;
     }
-    QDataStream out(&file);
-    out << (quint32) refocusKeyCount;
-    out << refocusLineStart;
-    out << refocusLineEnd;
+    QTextStream out(&file);
+    out << (quint32) refocusKeyCount << "\n";
+    out << refocusLineStart.x() << " " << refocusLineStart.y() << "\n";
+    out << refocusLineEnd.x() << " " << refocusLineEnd.y() << "\n";
     for (unsigned i=0; i<refocusKeyCount; i++)
     {
-        out << refocusKeys[i];
+        out << refocusKeys[i] << " ";
     }
+    out << "\n";
+    for (unsigned i=0; i<refocusKeyCount; i++)
+    {
+        out << refocusPoints[i].x() << " ";
+        out << refocusPoints[i].y() << " ";
+    }
+    out << "\n";
 }
 
 void FocusEditorWidget::loadRefocusKeys()
@@ -150,14 +159,40 @@ void FocusEditorWidget::loadRefocusKeys()
         qDebug() << "unable to open keys file for reading";
         return;
     }
-    QDataStream in(&file);
-    in >> refocusKeyCount;
-    in >> refocusLineStart;
-    in >> refocusLineEnd;
+    QTextStream in(&file);
+    //QDataStream in(&file);
+    QString text;
+    in >> text;
+    refocusKeyCount = text.toInt();
+    in >> text;
+    refocusLineStart.setX(text.toFloat());
+    in >> text;
+    refocusLineStart.setY(text.toFloat());
+    in >> text;
+    refocusLineEnd.setX(text.toFloat());
+    in >> text;
+    refocusLineEnd.setY(text.toFloat());
     refocusKeys.resize(refocusKeyCount);
+    refocusPoints.resize(refocusKeyCount);
     for (unsigned i=0; i<refocusKeyCount; i++)
     {
-        in >> refocusKeys[i];
+        in >> text;
+        refocusKeys[i] = text.toInt();
+    }
+    if (in.atEnd())
+        refocusPoints = generateRefocusPoints();
+    else
+    {
+        for (unsigned i=0; i<refocusKeyCount; i++)
+        {
+            float x=-1,y=-1;
+            in >> text;
+            x = text.toFloat();
+            in >> text;
+            y = text.toFloat();
+            refocusPoints[i].setX(x);
+            refocusPoints[i].setY(y);
+        }
     }
     refocusSetState = RSS_COMPLETE;
     update();
@@ -293,13 +328,16 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
             for (unsigned i = 0; i < refocusKeyCount; ++i)
             {
                 painter.drawLine(refocusLineStart, refocusLineEnd);
-                for (unsigned i = 0; i < refocusKeyCount; ++i)
+                for (unsigned i = 0; i < refocusPoints.size(); ++i)
                 {
+                    const QPointF keyPos(refocusPoints[i]);
+                    /*
                     const float factor(float(i)/float(refocusKeyCount-1));
                     const QPointF keyPos(
                                 QPointF(refocusLineStart) +
                                 QPointF(refocusLineEnd - refocusLineStart) * factor
                                 );
+                                */
                     painter.setBrush(Qt::white);
                     if (i == refocusKeySelected)
                     {
@@ -314,10 +352,13 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
         }
         else
         {
+            const QPointF keyPos(refocusPoints[refocusKeySelected]);
+            /*
             const QPointF keyPos(
                         QPointF(refocusLineStart) +
                         QPointF(refocusLineEnd - refocusLineStart) * (float(refocusKeySelected)/float(refocusKeyCount-1))
                         );
+                        */
             painter.setBrush(Qt::NoBrush);
             painter.setPen(QPen(Qt::white,2));
             painter.drawEllipse(keyPos, 20, 20);
@@ -327,31 +368,34 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
             painter.drawLine(keyPos.x(), keyPos.y()-20, keyPos.x(), keyPos.y()-5);
             painter.drawLine(keyPos.x(), keyPos.y()+5, keyPos.x(), keyPos.y()+20);
 
-            // we add the zoom
-            int zoomX(keyPos.x()-32);
-            int zoomY(keyPos.y()-32);
-            const int zoomW(64);
-            const int zoomH(64);
-            zoomX = max(0, zoomX);
-            zoomY = max(0, zoomY);
-            if(zoomX + zoomW > frames[frameIndex].width()) zoomX = frames[frameIndex].width() - zoomW - 1;
-            if(zoomY + zoomH > frames[frameIndex].height()) zoomY = frames[frameIndex].height() - zoomH - 1;
-            const int bigZoomW(zoomW*4);
-            const int bigZoomH(zoomH*4);
-            int bigX(0);
-            int bigY(height()-bigZoomH-1);
-            if(keyPos.x() < bigZoomW*1.5) bigX = width() - bigZoomW - 1;
+            if (editMode!=1)
+            {
+                // we add the zoom
+                int zoomX(keyPos.x()-32);
+                int zoomY(keyPos.y()-32);
+                const int zoomW(64);
+                const int zoomH(64);
+                zoomX = max(0, zoomX);
+                zoomY = max(0, zoomY);
+                if(zoomX + zoomW > frames[frameIndex].width()) zoomX = frames[frameIndex].width() - zoomW - 1;
+                if(zoomY + zoomH > frames[frameIndex].height()) zoomY = frames[frameIndex].height() - zoomH - 1;
+                const int bigZoomW(zoomW*4);
+                const int bigZoomH(zoomH*4);
+                int bigX(0);
+                int bigY(height()-bigZoomH-1);
+                if(keyPos.x() < bigZoomW*1.5) bigX = width() - bigZoomW - 1;
 
-            Frame zoomPix = frames[frameIndex].copy(zoomX, zoomY, zoomW, zoomH);
-            painter.drawPixmap(bigX, bigY, bigZoomW, bigZoomH, zoomPix.scaled(bigZoomW, bigZoomH));
-            painter.drawLine(bigX + bigZoomW/2+10, bigY + bigZoomH/2,
-                             bigX + bigZoomW/2+40, bigY + bigZoomH/2);
-            painter.drawLine(bigX + bigZoomW/2-10, bigY + bigZoomH/2,
-                             bigX + bigZoomW/2-40, bigY + bigZoomH/2);
-            painter.drawLine(bigX + bigZoomW/2, bigY + bigZoomH/2+10,
-                             bigX + bigZoomW/2, bigY + bigZoomH/2+40);
-            painter.drawLine(bigX + bigZoomW/2, bigY + bigZoomH/2-10,
-                             bigX + bigZoomW/2, bigY + bigZoomH/2-40);
+                Frame zoomPix = frames[frameIndex].copy(zoomX, zoomY, zoomW, zoomH);
+                painter.drawPixmap(bigX, bigY, bigZoomW, bigZoomH, zoomPix.scaled(bigZoomW, bigZoomH));
+                painter.drawLine(bigX + bigZoomW/2+10, bigY + bigZoomH/2,
+                                 bigX + bigZoomW/2+40, bigY + bigZoomH/2);
+                painter.drawLine(bigX + bigZoomW/2-10, bigY + bigZoomH/2,
+                                 bigX + bigZoomW/2-40, bigY + bigZoomH/2);
+                painter.drawLine(bigX + bigZoomW/2, bigY + bigZoomH/2+10,
+                                 bigX + bigZoomW/2, bigY + bigZoomH/2+40);
+                painter.drawLine(bigX + bigZoomW/2, bigY + bigZoomH/2-10,
+                                 bigX + bigZoomW/2, bigY + bigZoomH/2-40);
+            }
         }
 
         // and on the timeline
@@ -396,6 +440,41 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
         painter.drawEllipse(refocusLineStart, 4, 4);
     }
 
+    if (editMode==1)
+    {
+        QPointF closestPoint = getClosestPointOnLine(mousePos);
+        painter.setBrush(Qt::NoBrush);
+        painter.setPen(QPen(Qt::white, 1, Qt::DotLine));
+        painter.drawLine(mousePos, closestPoint);
+        painter.drawEllipse(mousePos, 5, 5);
+        painter.drawEllipse(closestPoint, 5, 5);
+
+        // we add the zoom
+        int zoomX(mousePos.x()-32);
+        int zoomY(mousePos.y()-32);
+        const int zoomW(64);
+        const int zoomH(64);
+        zoomX = max(0, zoomX);
+        zoomY = max(0, zoomY);
+        if(zoomX + zoomW > frames[frameIndex].width()) zoomX = frames[frameIndex].width() - zoomW - 1;
+        if(zoomY + zoomH > frames[frameIndex].height()) zoomY = frames[frameIndex].height() - zoomH - 1;
+        const int bigZoomW(zoomW*4);
+        const int bigZoomH(zoomH*4);
+        int bigX(0);
+        int bigY(height()-bigZoomH-1);
+        if(mousePos.x() < bigZoomW*1.5) bigX = width() - bigZoomW - 1;
+
+        Frame zoomPix = frames[frameIndex].copy(zoomX, zoomY, zoomW, zoomH);
+        painter.drawPixmap(bigX, bigY, bigZoomW, bigZoomH, zoomPix.scaled(bigZoomW, bigZoomH));
+        painter.drawLine(bigX + bigZoomW/2+10, bigY + bigZoomH/2,
+                         bigX + bigZoomW/2+40, bigY + bigZoomH/2);
+        painter.drawLine(bigX + bigZoomW/2-10, bigY + bigZoomH/2,
+                         bigX + bigZoomW/2-40, bigY + bigZoomH/2);
+        painter.drawLine(bigX + bigZoomW/2, bigY + bigZoomH/2+10,
+                         bigX + bigZoomW/2, bigY + bigZoomH/2+40);
+        painter.drawLine(bigX + bigZoomW/2, bigY + bigZoomH/2-10,
+                         bigX + bigZoomW/2, bigY + bigZoomH/2-40);
+    }
 
     // just testing the ease-in ease-out functions
     /*
@@ -435,7 +514,6 @@ void FocusEditorWidget::paintEvent(QPaintEvent * event)
         }
     }
     */
-
 }
 
 void FocusEditorWidget::timerEvent(QTimerEvent *)
@@ -470,24 +548,45 @@ void FocusEditorWidget::keyPressEvent(QKeyEvent *event)
     }
 }
 
-void FocusEditorWidget::mouseMoveEvent(QMouseEvent *event)
+void FocusEditorWidget::keyReleaseEvent(QKeyEvent *event)
 {
+    if(event->modifiers() != Qt::ControlModifier) editMode = 0;
+}
+
+void FocusEditorWidget::mouseMoveEvent(QMouseEvent *event)
+{    
+    mousePos = event->posF();
+    editMode = 0;
     if (event->buttons() == Qt::LeftButton && event->y() < timelineHeight)
     {
         const float percentage = float(event->x()) / float(width());
         frameIndex = max(min(int(float(frames.size())*percentage), frames.size()-1), 0);
-        update();
     }
-
+    else if (event->buttons() == Qt::LeftButton && event->modifiers() == Qt::ShiftModifier && refocusSetState == RSS_COMPLETE)
+    {
+        // we look for the closest point and move the line
+        if ((refocusLineStart-event->pos()).manhattanLength() < (refocusLineEnd-event->pos()).manhattanLength())
+           refocusLineStart = event->pos();
+        else
+            refocusLineEnd = event->pos();
+    }
+    else if (event->modifiers() == Qt::ControlModifier)
+    {
+        editMode = 1;
+    }
+    update();
 }
 
 void FocusEditorWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
-
+    editMode = 0;
+    mousePos = event->posF();
+    update();
 }
 
 void FocusEditorWidget::mousePressEvent(QMouseEvent *event)
 {
+    mousePos = event->posF();
     if (event->y() < timelineHeight)
     {
         const float percentage = float(event->x()) / float(width());
@@ -496,27 +595,66 @@ void FocusEditorWidget::mousePressEvent(QMouseEvent *event)
     }
     else
     {
-        switch (refocusSetState)
+        if (event->modifiers() == Qt::ShiftModifier)
         {
-        case RSS_NONE:
-        case RSS_COMPLETE:
-            refocusLineStart = event->pos();
-            refocusSetState = RSS_START;
+            editMode = 0;
+            switch (refocusSetState)
+            {
+            case RSS_COMPLETE:
+                // we look for the closest point and move the line
+                if ((refocusLineStart-event->pos()).manhattanLength() < (refocusLineEnd-event->pos()).manhattanLength())
+                   refocusLineStart = event->pos();
+                else
+                    refocusLineEnd = event->pos();
+                update();
+                break;
+            case RSS_NONE:
+                refocusLineStart = event->pos();
+                refocusSetState = RSS_START;
+                update();
+                break;
+            case RSS_START:
+                refocusLineEnd = event->pos();
+                refocusSetState = RSS_COMPLETE;
+                resizeRefocusKeys();
+                break;
+            default: break;
+            };
+        }
+        else if(event->modifiers() == Qt::ControlModifier)
+        {
+            editMode = 1;
             update();
-            break;
-        case RSS_START:
-            refocusLineEnd = event->pos();
-            refocusSetState = RSS_COMPLETE;
-            resizeRefocusKeys();
-            break;
-        default: break;
-        };
+        }
     }
 }
 
 void FocusEditorWidget::mouseReleaseEvent(QMouseEvent *event)
 {
-
+    mousePos = event->posF();
+    if (editMode==1) // we use the mouse to add a point in the line at the closest position, and set the frame as the current one
+    {
+        const QPointF closestPoint = getClosestPointOnLine(mousePos);
+        const QPointF segment(closestPoint - refocusLineStart);
+        const QPointF lineVector(refocusLineStart-refocusLineEnd);
+        const QPointF sumVector(lineVector + segment);
+        const float sumLength(sqrtf(sumVector.x()*sumVector.x() + sumVector.y()*sumVector.y()));
+        const float segmentLength(sqrtf(segment.x()*segment.x() + segment.y()*segment.y()));
+        const float lineLength(sqrtf(lineVector.x()*lineVector.x() + lineVector.y()*lineVector.y()));
+        const float ratio = segmentLength / lineLength;
+        const float indexRatio(ratio*refocusKeyCount);
+        const int index = int(indexRatio);
+        qDebug() << "index" << index << "indexRatio" << indexRatio << "ratio" << ratio
+                 << "distance" << indexRatio - index << "sumlength" << sumLength << lineLength;
+        if(indexRatio-index > 1e-3 && sumLength < lineLength && index < refocusKeyCount)
+        {
+            refocusKeys.insert(refocusKeys.begin() + index, frameIndex);
+            refocusPoints.insert(refocusPoints.begin() + index, closestPoint);
+            refocusKeyCount++;
+            refocusKeySelected = index;
+        }
+        update();
+    }
 }
 
 void FocusEditorWidget::resizeRefocusKeys()
@@ -529,6 +667,7 @@ void FocusEditorWidget::resizeRefocusKeys()
 				);
 	refocusKeySelected = std::min(refocusKeySelected, refocusKeyCount-1);
 	refocusKeys.resize(refocusKeyCount,-1);
+    refocusPoints = generateRefocusPoints();
 	update();
 }
 
@@ -555,6 +694,32 @@ RefocusKeys FocusEditorWidget::getFullKeypointList() const
         }
     }
     return interpolatedKeys;
+}
+
+QPointF FocusEditorWidget::getClosestPointOnLine(const QPointF& point) const
+{
+    QPointF lineVector(refocusLineEnd-refocusLineStart);
+    const float lineLength(sqrtf(lineVector.x()*lineVector.x() + lineVector.y()*lineVector.y()));
+    lineVector.setX(lineVector.x()/lineLength);
+    lineVector.setY(lineVector.y()/lineLength);
+    const QPointF pointVector(point-refocusLineStart);
+    const float ratio(lineVector.x()*pointVector.x() + lineVector.y()*pointVector.y());
+    return lineVector*ratio + refocusLineStart;
+}
+
+RefocusPoints FocusEditorWidget::generateRefocusPoints()
+{
+    RefocusPoints points(refocusKeyCount);
+    for (unsigned i = 0; i < refocusKeyCount; ++i)
+    {
+        const float factor(float(i)/float(refocusKeyCount-1));
+        const QPointF keyPos(
+                    QPointF(refocusLineStart) +
+                    QPointF(refocusLineEnd - refocusLineStart) * factor
+                    );
+        points[i] = keyPos;
+    }
+    return points;
 }
 
 unsigned FocusEditorWidget::getBestDuration() const

@@ -17,8 +17,9 @@ namespace RackFocusFixer
 	typedef QPixmap Frame;
 	typedef QList<Frame> Frames;
 	typedef QList<QString> FrameNames;
-	typedef std::vector<int> RefocusKeys;
-	typedef std::vector<float> FrameList;
+    typedef std::vector<int> RefocusKeys;
+    typedef std::vector<QPointF> RefocusPoints;
+    typedef std::vector<float> FrameList;
 	
 	class FocusEditorWidget: public QWidget
 	{
@@ -48,14 +49,17 @@ namespace RackFocusFixer
 		void paintEvent(QPaintEvent * event);
         void timerEvent(QTimerEvent *event);
         void keyPressEvent(QKeyEvent *event);
+        void keyReleaseEvent(QKeyEvent *event);
         void mouseMoveEvent(QMouseEvent *event);
         void mouseDoubleClickEvent(QMouseEvent *event);
         void mousePressEvent(QMouseEvent *event);
         void mouseReleaseEvent(QMouseEvent *event);
 
     private:
-		void resizeRefocusKeys();
+        void resizeRefocusKeys();
         RefocusKeys getFullKeypointList() const;
+        QPointF getClosestPointOnLine(const QPointF &point) const;
+        RefocusPoints generateRefocusPoints();
         unsigned getBestDuration() const;
         float transformPercentage(const float percentage, const int transformationMethod) const;
         FrameList getLinearFrames(const int duration, const RefocusKeys& keys, const int distanceType) const;
@@ -85,9 +89,12 @@ namespace RackFocusFixer
 			RSS_COMPLETE
 		} refocusSetState;
         RefocusKeys refocusKeys;
-		
+        RefocusPoints refocusPoints;
+
         bool bPaused;
         bool bShowLine;
+        int editMode;
+        QPointF mousePos;
         Ui_ExportDialog *exporter;
         QDialog *exportDialog;
 	};
