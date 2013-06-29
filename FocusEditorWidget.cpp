@@ -740,15 +740,25 @@ RefocusKeys FocusEditorWidget::getFullKeypointList() const
     return interpolatedKeys;
 }
 
-QPointF FocusEditorWidget::getClosestPointOnLine(const QPointF& point) const
+QPointF FocusEditorWidget::getClosestPointOnLine(const QPointF& point, const QPointF& newStart, const QPoint& newEnd) const
 {
+	// compute ratio on old line
     QPointF lineVector(refocusLineEnd-refocusLineStart);
     const float lineLength(sqrtf(lineVector.x()*lineVector.x() + lineVector.y()*lineVector.y()));
-    lineVector.setX(lineVector.x()/lineLength);
-    lineVector.setY(lineVector.y()/lineLength);
+    lineVector /= lineLength;
     const QPointF pointVector(point-refocusLineStart);
     const float ratio(lineVector.x()*pointVector.x() + lineVector.y()*pointVector.y());
-    return lineVector*ratio + refocusLineStart;
+    // recompute position on new line
+    QPointF newLineVector(newEnd-newStart);
+    const float newLineLength(sqrtf(newLineVector.x()*newLineVector.x() + newLineVector.y()*newLineVector.y()));
+    newLineVector /= newLineLength;
+    // use old ratio on new line
+    return newLineVector*ratio + newStart;
+}
+
+QPointF FocusEditorWidget::getClosestPointOnLine(const QPointF& point) const
+{
+	getClosestPointOnLine(point, refocusLineStart, refocusLineEnd);
 }
 
 RefocusPoints FocusEditorWidget::generateRefocusPoints()
