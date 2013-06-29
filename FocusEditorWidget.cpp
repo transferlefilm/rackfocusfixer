@@ -758,7 +758,7 @@ QPointF FocusEditorWidget::getClosestPointOnLine(const QPointF& point, const QPo
 
 QPointF FocusEditorWidget::getClosestPointOnLine(const QPointF& point) const
 {
-	getClosestPointOnLine(point, refocusLineStart, refocusLineEnd);
+	return getClosestPointOnLine(point, refocusLineStart, refocusLineEnd);
 }
 
 RefocusPoints FocusEditorWidget::generateRefocusPoints()
