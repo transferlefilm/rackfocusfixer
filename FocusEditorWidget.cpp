@@ -583,7 +583,7 @@ void FocusEditorWidget::mouseMoveEvent(QMouseEvent *event)
         else
             refocusLineEnd = event->pos();
     }
-    else if (event->modifiers() == Qt::ControlModifier)
+    else if (event->modifiers() == Qt::ControlModifier && refocusSetState == RSS_COMPLETE)
     {
         editMode = 1;
     }
@@ -904,9 +904,9 @@ void FocusEditorWidget::exportVideo()
     switch(distanceType)
     {
     case 0: distanceType = EaseInOut::Linear; break;
-    case 1: distanceType = EaseInOut::Exponential; break;
-    case 2: distanceType = EaseInOut::Squareroot; break;
-    case 3: distanceType = EaseInOut::Tanh; break;
+    case 1: distanceType = EaseInOut::Squareroot; break;
+    case 2: distanceType = EaseInOut::Sinusoidal; break;
+    case 3: distanceType = EaseInOut::Exponential; break;
     }
 
     FrameList frameList;
