@@ -60,6 +60,7 @@ namespace RackFocusFixer
     private:
         void resizeRefocusKeys();
         RefocusKeys getFullKeypointList() const;
+        QPointF getClosestPointOnLine(const QPointF& point, const QPointF& newStart, const QPoint& newEnd) const;
         QPointF getClosestPointOnLine(const QPointF &point) const;
         RefocusPoints generateRefocusPoints();
         void sortRefocusKeys();
