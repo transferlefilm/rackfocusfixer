@@ -589,9 +589,23 @@ void FocusEditorWidget::mouseMoveEvent(QMouseEvent *event)
     {
         // we look for the closest point and move the line
         if ((refocusLineStart-event->pos()).manhattanLength() < (refocusLineEnd-event->pos()).manhattanLength())
-           refocusLineStart = event->pos();
+        {
+            RefocusPoints newRefocusPoints;
+            for (int i=0; i<refocusPoints.size(); i++)
+            {
+                newRefocusPoints.push_back(getClosestPointOnLine(refocusPoints[i], event->pos(), refocusLineEnd));
+            }
+            refocusLineStart = event->pos();
+        }
         else
+        {
+            RefocusPoints newRefocusPoints;
+            for (int i=0; i<refocusPoints.size(); i++)
+            {
+                newRefocusPoints.push_back(getClosestPointOnLine(refocusPoints[i], refocusLineStart, event->pos()));
+            }
             refocusLineEnd = event->pos();
+        }
     }
     else if (event->modifiers() == Qt::ControlModifier && refocusSetState == RSS_COMPLETE)
     {
@@ -626,9 +640,23 @@ void FocusEditorWidget::mousePressEvent(QMouseEvent *event)
             case RSS_COMPLETE:
                 // we look for the closest point and move the line
                 if ((refocusLineStart-event->pos()).manhattanLength() < (refocusLineEnd-event->pos()).manhattanLength())
+                {
+                    RefocusPoints newRefocusPoints;
+                    for (int i=0; i<refocusPoints.size(); i++)
+                    {
+                        newRefocusPoints.push_back(getClosestPointOnLine(refocusPoints[i], event->pos(), refocusLineEnd));
+                    }
                    refocusLineStart = event->pos();
+                }
                 else
+                {
+                    RefocusPoints newRefocusPoints;
+                    for (int i=0; i<refocusPoints.size(); i++)
+                    {
+                        newRefocusPoints.push_back(getClosestPointOnLine(refocusPoints[i], refocusLineStart, event->pos()));
+                    }
                     refocusLineEnd = event->pos();
+                }
                 update();
                 break;
             case RSS_NONE:
@@ -946,7 +974,7 @@ void FocusEditorWidget::exportVideo()
     for (; i<frameList.size(); i++)
     {
         QImage image = getInterpolatedFrame(frameList[i]);
-        QString fileName = QString("%1-fixed%2.jpg").arg(prefix).arg(i+1,5, 10, QChar('0'));
+        QString fileName = QString("%1-fixed%2.png").arg(prefix).arg(i+1,5, 10, QChar('0'));
         image.save(fileName);
 
         progress.setValue(i);
