@@ -273,9 +273,19 @@ void FocusEditorWidget::resetRefocusKeyFrame()
 
 void FocusEditorWidget::deleteRefocusKey()
 {
+	if (refocusKeys.size() <= 2)
+		return;
     refocusKeys.erase(refocusKeys.begin() + refocusKeySelected);
     refocusPoints.erase(refocusPoints.begin() + refocusKeySelected);
-    if (refocusKeySelected >= refocusKeys.size()) refocusKeySelected = refocusKeys.size()-1;
+    if (refocusKeySelected >= refocusKeys.size())
+    {
+		refocusKeySelected = refocusKeys.size()-1;
+		refocusLineEnd = refocusPoints.back().toPoint();
+	}
+	if (refocusKeySelected == 0)
+	{
+		refocusLineStart = refocusPoints.front().toPoint();
+	}
     refocusKeyCount--;
     update();
 }
